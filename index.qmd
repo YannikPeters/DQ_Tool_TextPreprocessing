@@ -1,5 +1,5 @@
 ---
-title: "Comparing Tools and Workflows for Data Quality in Text Preprocessing"
+title: "Comparing Tools and Workflows for Data Quality in Basic Text Preprocessing with R - Part 1"
 author: "Yannik Peters"
 format: html
 editor: visual
@@ -29,12 +29,13 @@ library(spelling)
 library(hunspell)
 library(polyglotr)
 library(deeplr)
+library(text)
 ```
 
 Finally, we will then load our artificial dataset from the Olympic summer games.
 
 ```{r message = FALSE, warning = FALSE}
-olympics_data <- read_csv("6.modified_olympics_tweets_RT.csv", locale = locale(encoding = "Latin1"))
+olympics_data <- read_csv("6.modified_olympics_tweet.csv", locale = locale(encoding = "Latin1"))
 olympics_data
 ```
 
@@ -91,7 +92,7 @@ We only find a few documents that are not in English resulting in some very smal
 
 3\) Translating
 
-The third option of dealing with multilingual datasets is to translate the non-English speaking tweets into English. As this is a just a small, artificial, sample data set, we could actually translate the few tweets manually. In a real case scenario however, analyzing a data set of millions of tweets, you would usually use a automated translation algorithm or method. The most common translation tools are `Google Translator` and `DeepL`. The main advantage of the translation method is to generate one singular data set, which can then be analyzed with one model only. This requires less resources all well. The main disadvantage lies in the potential of translation errors. It is therefore necessary to evaluate your translation method. For this purpose, let's translate all non-English comments with both tools in order to compare the results. First, we will use the `polyglotr` and the `deeplr` package to translate the German text.
+The third option of dealing with multilingual datasets is to translate the non-English speaking tweets into English. As this is a just a small, artificial, sample data set, we could actually translate the few tweets manually. In a real case scenario however, analyzing a data set of millions of tweets, you would usually use a automated translation algorithm or method. The main advantage of the translation method is to generate one singular data set, which can then be analyzed with one model only. This requires less resources all well. The main disadvantage lies in the potential of translation errors. It is therefore necessary to evaluate your translation method. For this purpose, let's translate all non-English comments with both tools in order to compare the results. The most common translation tools are `Google Translator` and `DeepL`. First, we will use the `polyglotr` and the `deeplr` package to translate the German text.
 
 ```{r message=FALSE, warning=FALSE}
 #Translation of German posts and creation of translated dataframe using Google Translate
@@ -101,7 +102,7 @@ olympics_data_de_google <- olympics_data_de
 olympics_data_de_google$tweet_text <- translation_google_de
 ```
 
-To access the DeepL API, you currently need a developer account. You can use this [link](https://www.deepl.com/en/pro/change-plan#developer) to get to the registration page. A free account can translate up to 500,000 characters per month and gives you access to the DeepL Rest API. In order to translate our text using DeepL in R, you first need this API-key. When signing up for a developer account, you automatically receive such a key.
+To access the DeepL API, you currently need a developer account. You can use this [link](https://www.deepl.com/en/pro/change-plan#developer) to get to the registration page. A free account can translate up to 500,000 characters per month and gives you access to the DeepL Rest API. In order to translate our text using DeepL in R, you first need the API-key. When signing up for a developer account, you automatically receive such a key.
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
 my_key <- "e1b84858-e71d-4be5-a592-f67a6ffb35ea:fx"
@@ -177,11 +178,68 @@ The key question for us is now: Do we want to use the translation of DeepL or Go
 olympics_data_en_full <- rbind(olympics_data_en, olympics_data_de_deepl, olympics_data_fr_deepl)
 ```
 
-### 3.3 Minor text operations: removing special characters
+::: callout-important
+An alternative, fourth way would be to apply methods which are able to analyze multilingual text data. These methods are usually based on multilingual word or sentence embedding. Examples for these strategies can be found in @licht2023a or @chan2020.
+:::
+
+### 3.3 Minor text operations
+
+Minor text operations and removing stopwords in text preprocessing are highly depended on two factors:
+
+a\) The text data type
+
+Compared to other types of text data, such as newspaper articles or literature, social media data often involves a rather informal communication style or consists of specific characteristics. For example, the proportion of abbreviations, slang, spelling mistakes or emojis is usually high, which can be considered as noise in the data.
+
+b\) The specific method to be applied
+
+Different methods in Computational Social Science require different strategies of text preprocessing. Methods that use a bag of words approach, for example, tend to remove a rather high number of different special characters, as these are not regarded as meaningful for interpretation, but rather as disruptive. In contrast, approaches that include context and semantics like modern transformer-based models tend to retain characteristics such as punctuation marks and require in general less preprocessing steps.
+
+In our case, we will later apply a "classic" LDA. Therefore, we will apply some basic operations like removing hashtags, punctuaction or URLs.
+
+First, we will remove all hashtags from the original text and save them in a separate column. We compared functions of multiple packages and decided to use the one from `textclean`, because the ones from the other packages performed slightly less accurate (f.e. some were not able to remove punctuation at the end of an hashtag within a sentence). To remove hashtags from the text is advisable for our case, as we analyze tweets which all contain #Olympics2024. In a topic model, #Olympics2024 would therefore be closely linked to every topic and not add significant value regarding interpretation.
+
+```{r message=FALSE, warning=FALSE}
+olympics_data_en_full <- olympics_data_en_full %>%
+ mutate(
+        	# Extract hashtags
+              	Hashtags = sapply(str_extract_all(`tweet_text`, "#\\w+"), paste, collapse = " "),
+        	
+              	# Remove hashtags from the original text
+            `tweet_text` = replace_hash(`tweet_text`, replacement = "")
+      	) %>%
+  	# Clean up any extra whitespace left after removing hashtags
+      mutate(`tweet_text` = str_squish(`tweet_text`))
+
+```
+
+Besides removing the hashtags, we also want to remove special characters like URLs, punctuation or usernames as they do not add relevant information in BoW models like LDA, but rather increase the amount of words (tokens) to analyze and therefore the calculation time. Again, we will store the \@-mentions in a separate column to not lose information. As a last step of minor text operations, we want to set the whole text to lower cases in order to not treat the same word differently.
+
+```{r message=FALSE, warning=FALSE}
+# Create a new column for usernames and then clean the text
+olympics_data_en_full <- olympics_data_en_full %>%
+  mutate(
+    #Store the usernames in a new column
+    user_mentions = str_extract_all(tweet_text, "@\\w+") %>% 
+      sapply(paste, collapse = ", "),  # Extract usernames with '@'
+    
+    # Clean the text
+    tweet_text = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", tweet_text) %>% #Remove retweets
+      gsub("https?://\\S+", "", .) %>%  # Remove URLs
+      gsub("@\\w+", "", .) %>%          # Remove @usernames from the text
+      gsub("[\r\n]", " ", .) %>%        # Remove line breaks
+      gsub("[[:punct:]]+", " ", .) %>%  # Remove punctuation
+      gsub("\\bs\\b", " ", .) %>%       # Remove "s" as a standalone word
+      gsub("\\bt\\b", " ", .) %>%       # Remove "t" as a standalone word
+      gsub("\\s+", " ", .) %>%          # Reduce multiple spaces to a single space
+      trimws(.) %>%                     # Trim whitespace from the beginning and end
+      tolower()                         # Convert text to lowercase
+  )
+
+head(olympics_data_en_full$tweet_text)
+
+```
 
 ### 3.4 Removing stopwords
-
-In text preprocessing of social media data, there are often times certain typical preprocessing steps included like removing special characters or changing capital letters to lower cases.
 
 ### 3.5 Identifying misspelling
 
