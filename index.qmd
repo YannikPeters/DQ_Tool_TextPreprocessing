@@ -29,7 +29,8 @@ library(spelling)
 library(hunspell)
 library(polyglotr)
 library(deeplr)
-library(text)
+library(stringr)
+library(stopwords)
 ```
 
 Finally, we will then load our artificial dataset from the Olympic summer games.
@@ -63,7 +64,13 @@ skim(olympics_data)
 
 ### 3.2 Dealing with multiple languages
 
-As the Olympic games are a transnational media event, it does not come as a surprise to receive a multilingual data set. The basic problem about multilingual data sets is that common CSS research methods like topic modeling or sentiment analysis are expected to be in one language. There are different strategies to deal with multilingual data sets. The chosen strategy has to depend on the specific contexts, the applied methods and the research design and questions. We can basically distinguish three or four main strategies with regard to multilingual data sets (see @haukelicht2023, @lind2021a). For this short version, we will discuss three main strategies.
+As the Olympic games are a transnational media event, it does not come as a surprise to receive a multilingual data set. The basic problem about multilingual data sets is that common CSS research methods like topic modeling or sentiment analysis are expected to be in one language. There are different strategies to deal with multilingual data sets. The chosen strategy has to depend on the specific contexts, the applied methods and the research design and questions. We can basically distinguish three or four main strategies with regard to multilingual data sets (see @haukelicht2023, @lind2021a). For this short version, we will discuss three main strategies: 1) selecting cases, 2) multiple language data sets and 3) machine translation.
+
+:::: callout-note
+::: callout-important
+An alternative, fourth way would be to apply methods which are able to analyze multilingual text data. These methods are usually based on multilingual word or sentence embedding. Examples for these strategies can be found in @licht2023a or @chan2020.
+:::
+::::
 
 1\) Selecting cases: one language
 
@@ -90,7 +97,7 @@ table(olympics_data_fr$language)
 
 We only find a few documents that are not in English resulting in some very small language sets. Therefore, this strategy might not be the best with regard to our example data.
 
-3\) Translating
+3\) (Machine) translating
 
 The third option of dealing with multilingual datasets is to translate the non-English speaking tweets into English. As this is a just a small, artificial, sample data set, we could actually translate the few tweets manually. In a real case scenario however, analyzing a data set of millions of tweets, you would usually use a automated translation algorithm or method. The main advantage of the translation method is to generate one singular data set, which can then be analyzed with one model only. This requires less resources all well. The main disadvantage lies in the potential of translation errors. It is therefore necessary to evaluate your translation method. For this purpose, let's translate all non-English comments with both tools in order to compare the results. The most common translation tools are `Google Translator` and `DeepL`. First, we will use the `polyglotr` and the `deeplr` package to translate the German text.
 
@@ -135,10 +142,10 @@ google_translation_de <- unlist(translation_google_de)
 deepl_translation_de <- unlist(translation_deepl_de)
 
 
-cosine_similarities <- COS_TEXT(google_translation_de, deepl_translation_de, separator = " ")
+cosine_similarities_de <- COS_TEXT(google_translation_de, deepl_translation_de, separator = " ")
 
-cosine_similarities
-mean(cosine_similarities)
+cosine_similarities_de
+mean(cosine_similarities_de)
 ```
 
 With a mean cosine similarity of 0.82 on a scale from 0 to 1, the translations of Google Translate and DeepL are indeed very similar. We can do the very same for the French postings.
@@ -164,27 +171,27 @@ google_translation_fr <- unlist(translation_google_fr)
 deepl_translation_fr <- unlist(translation_deepl_fr)
 
 #calculate cosine similarities for French translation data
-cosine_similarities <- COS_TEXT(google_translation_fr, deepl_translation_fr, separator = " ")
+cosine_similarities_fr <- COS_TEXT(google_translation_fr, deepl_translation_fr, separator = " ")
 
-cosine_similarities
-mean(cosine_similarities)
+cosine_similarities_fr
+mean(cosine_similarities_fr)
 ```
 
 With an average cosine similarity of 0.86, it is slightly higher for the French than the German translation.
 
-The key question for us is now: Do we want to use the translation of DeepL or Google Translate? Generally, DeepL is considered to be more accurate then Google Translate (like [here](https://www.geeksforgeeks.org/deepl-vs-google/)). In current research, both tools are considered applicable. For the translation of Spanish idiomatic expressions into English, @hidalgo-ternero2021 find DeepL with an average accuracy rate of 89% slighty better than Google Translate with 86%. @sebo2024 do not find significant differences in the accuracy of both tools. One of the major advantages of Google Translate is that it can be applied to significantly more languages than DeepL. As we only have two languages to translate in our case, we will use the DeepL translation here.
+The key question for us is now: Do we want to use the translation of DeepL or Google Translate? Generally, DeepL is considered to be more accurate then Google Translate (like [here](https://www.geeksforgeeks.org/deepl-vs-google/)). Still, Google Translate has proven to be very accurate with regard to calculating topic models [@devries2018]. In current research, both tools are considered applicable. For the translation of Spanish idiomatic expressions into English, @hidalgo-ternero2021 find DeepL with an average accuracy rate of 89% slighty better than Google Translate with 86%. @sebo2024 do not find significant differences in the accuracy of both tools. One of the major advantages of Google Translate is that it can be applied to significantly more languages than DeepL. As we only have two languages to translate in our case, we will use the DeepL translation here.
 
 ```{r}
 olympics_data_en_full <- rbind(olympics_data_en, olympics_data_de_deepl, olympics_data_fr_deepl)
 ```
 
 ::: callout-important
-An alternative, fourth way would be to apply methods which are able to analyze multilingual text data. These methods are usually based on multilingual word or sentence embedding. Examples for these strategies can be found in @licht2023a or @chan2020.
+Recent literature also highlighted the importance of using open source models for extrinsic data quality values like reproducibility [@chan2020], especially since they perform only slightly less accurate compared to the commercial ones [@licht2024a]. In R, the authors have currently not found any convincing open source alternative integrated in packages. Open source models like OpusMT can be used in Python via [Hugging Face](https://huggingface.co/models?pipeline_tag=translation&sort=trending). In R, these models can be accessed via the [`reticulate`](https://rstudio.github.io/reticulate/) package, which offers a connection to Python applications (see [here](https://rpubs.com/eR_ic/transfoRmers)). In future, a another option might be the [`text`](https://rpubs.com/eR_ic/transfoRmers) package, in which the translation function still has an experimental status.
 :::
 
 ### 3.3 Minor text operations
 
-Minor text operations and removing stopwords in text preprocessing are highly depended on two factors:
+Minor text operations and removing stopwords in text preprocessing are highly dependent on two factors:
 
 a\) The text data type
 
@@ -194,7 +201,11 @@ b\) The specific method to be applied
 
 Different methods in Computational Social Science require different strategies of text preprocessing. Methods that use a bag of words approach, for example, tend to remove a rather high number of different special characters, as these are not regarded as meaningful for interpretation, but rather as disruptive. In contrast, approaches that include context and semantics like modern transformer-based models tend to retain characteristics such as punctuation marks and require in general less preprocessing steps.
 
-In our case, we will later apply a "classic" LDA. Therefore, we will apply some basic operations like removing hashtags, punctuaction or URLs.
+In our case, we will later apply a "classic" LDA. Therefore, we will apply some basic operations like removing hashtags, punctuaction or URLs. Before we do so, let's check the lenght of our document.
+
+```{r}
+sum(str_count(olympics_data_en_full$tweet_text, '\\w+'))
+```
 
 First, we will remove all hashtags from the original text and save them in a separate column. We compared functions of multiple packages and decided to use the one from `textclean`, because the ones from the other packages performed slightly less accurate (f.e. some were not able to remove punctuation at the end of an hashtag within a sentence). To remove hashtags from the text is advisable for our case, as we analyze tweets which all contain #Olympics2024. In a topic model, #Olympics2024 would therefore be closely linked to every topic and not add significant value regarding interpretation.
 
@@ -210,9 +221,11 @@ olympics_data_en_full <- olympics_data_en_full %>%
   	# Clean up any extra whitespace left after removing hashtags
       mutate(`tweet_text` = str_squish(`tweet_text`))
 
+sum(str_count(olympics_data_en_full$tweet_text, '\\w+'))
+
 ```
 
-Besides removing the hashtags, we also want to remove special characters like URLs, punctuation or usernames as they do not add relevant information in BoW models like LDA, but rather increase the amount of words (tokens) to analyze and therefore the calculation time. Again, we will store the \@-mentions in a separate column to not lose information. As a last step of minor text operations, we want to set the whole text to lower cases in order to not treat the same word differently.
+Removing the hashtags has decreased our total word count by 691 words. Besides the hashtags, we also want to remove special characters like URLs, punctuation or usernames as they do not add relevant information in BoW models like LDA, but rather increase the amount of words (tokens) to analyze and therefore the calculation time. Again, we will store the \@-mentions in a separate column to not lose information. As a last step of minor text operations, we want to set the whole text to lower cases in order to not treat the same word differently.
 
 ```{r message=FALSE, warning=FALSE}
 # Create a new column for usernames and then clean the text
@@ -228,8 +241,6 @@ olympics_data_en_full <- olympics_data_en_full %>%
       gsub("@\\w+", "", .) %>%          # Remove @usernames from the text
       gsub("[\r\n]", " ", .) %>%        # Remove line breaks
       gsub("[[:punct:]]+", " ", .) %>%  # Remove punctuation
-      gsub("\\bs\\b", " ", .) %>%       # Remove "s" as a standalone word
-      gsub("\\bt\\b", " ", .) %>%       # Remove "t" as a standalone word
       gsub("\\s+", " ", .) %>%          # Reduce multiple spaces to a single space
       trimws(.) %>%                     # Trim whitespace from the beginning and end
       tolower()                         # Convert text to lowercase
@@ -237,13 +248,172 @@ olympics_data_en_full <- olympics_data_en_full %>%
 
 head(olympics_data_en_full$tweet_text)
 
+sum(str_count(olympics_data_en_full$tweet_text, '\\w+'))
+
 ```
 
 ### 3.4 Removing stopwords
 
+After doing the minor steps of text preprocessing, we now want to focus on removing stopwords as they can highly impact the outcome of certain models. Stopwords can be refered to as common words, often times frequently used, which add only little or no meaning for interpretation. Many popular text mining packages in R like `quanteda` offer stopword lists. Quite often these stopword lists are applied by default, while their specifics and peculiarities are not taken into account. For example, [@nothman2018]found a lot of "surprising omissions (e.g. *hasn't* but no *hadn't*) and inclusions (e.g. *computer*)". Also @hvitfeldt2021g found out inconsistencies in specific stopword lists. For example, the SMART stopword list like contains "he's" but not "she's". Therefore, it is worth checking for the impact of stopword lists with regard to your own data. In this tutorial, we will compare three commonly used and general stopword lists of the `stopwords` package: NLTK, SMART and Stopwords ISO. Even tough they overlap and can be integrated, `stopwords` contains a higher number of different lists compared to general text analysis packages with build-in stopword lists. Let's compare now the three lists following first the procedure of @hvitfeldt2021g.
+
+```{r}
+length(stopwords(source = "nltk"))
+length(stopwords(source = "smart"))
+length(stopwords(source = "stopwords-iso"))
+```
+
+It becomes clear, that the lists significantly differ in length. While NLPK is comparatively short, Stopwords ISO contains more than seven times as much words. Let's check now which words the three lists would exclude to see the differences.
+
+```{r}
+olympics_data_en_full_nltk <- olympics_data_en_full
+olympics_data_en_full_smart <- olympics_data_en_full
+olympics_data_en_full_iso <- olympics_data_en_full
+
+
+extract_stopwords <- function(text, source) {
+     # Get stopwords for the specified source
+     stops <- stopwords(language = "en", source = source)
+     # Split into words
+     words <- text %>%
+         strsplit("\\s+") %>%
+         unlist()
+     # Find intersection with stopwords
+     found_stops <- intersect(words, stops)
+     # Return as comma-separated string
+     paste(found_stops, collapse = ", ")
+ }
+# Apply extraction for each source
+olympics_data_en_full_nltk <- olympics_data_en_full_nltk %>%
+     mutate(
+         nltk_stopwords = sapply(tweet_text, extract_stopwords, source = "nltk"))
+
+olympics_data_en_full_smart <- olympics_data_en_full_smart %>%
+     mutate(
+         smart_stopwords = sapply(tweet_text, extract_stopwords, source = "smart"))
+
+olympics_data_en_full_iso <- olympics_data_en_full_iso %>%
+     mutate(
+         iso_stopwords = sapply(tweet_text, extract_stopwords, source = "stopwords-iso"))
+
+sum(str_count(olympics_data_en_full_nltk$nltk_stopwords, '\\w+'))
+sum(str_count(olympics_data_en_full_smart$smart_stopwords, '\\w+'))
+sum(str_count(olympics_data_en_full_iso$iso_stopwords, '\\w+'))
+
+
+
+```
+
+As expected, we find for our artificial data set, Stopwords ISO would remove the highest number of words from our text. Even though it consists of more than twice as much words that SMART, the difference between the lists is only 81 words. The bigger gap can be found between SMART and NLTK. Of course, the reason for this lies in the fact of certain shared stopwords being highly represented in a lot of tweets, while some of the unique words of the respective lists occur rather seldom. Let's apply now the three lists and compare the similarity between the procrossed text columns.
+
+```{r}
+
+remove_stopwords <- function(data, text_column, stopword_source) {
+  # Get stopwords from the stopwords package
+  stops <- stopwords(language = "en", source = stopword_source)
+  
+  # Remove stopwords from the specified text column
+  data[[text_column]] <- sapply(data[[text_column]], function(text) {
+    words <- strsplit(text, "\\s+")[[1]]       # Split text into words
+    filtered_words <- setdiff(words, stops)     # Remove stopwords
+    paste(filtered_words, collapse = " ")       # Reassemble text without stopwords
+  })
+  
+  return(data)
+}
+
+# Example usage
+olympics_data_en_full_nltk <- remove_stopwords(olympics_data_en_full_nltk, "tweet_text", "nltk")
+olympics_data_en_full_smart <- remove_stopwords(olympics_data_en_full_smart, "tweet_text", "smart")
+olympics_data_en_full_iso <- remove_stopwords(olympics_data_en_full_iso, "tweet_text", "stopwords-iso")
+
+# Calculating cosine similarity
+cosine_similarities_nltk_smart <- COS_TEXT(olympics_data_en_full_nltk$tweet_text, olympics_data_en_full_smart$tweet_text, separator = " ")
+cosine_similarities_nltk_iso <- COS_TEXT(olympics_data_en_full_nltk$tweet_text, olympics_data_en_full_iso$tweet_text, separator = " ")
+cosine_similarities_smart_iso <- COS_TEXT(olympics_data_en_full_smart$tweet_text, olympics_data_en_full_iso$tweet_text, separator = " ")
+
+mean(cosine_similarities_nltk_smart)
+mean(cosine_similarities_nltk_iso)
+mean(cosine_similarities_smart_iso)
+
+```
+
+As expected, the similarity between NLTK and ISO is lowest and highest between SMART and ISO. Even though the similarities are quite high, it becomes clear that using specific stopword lists leads to changes regarding your corpus and subsequently to your analysis. Therefore, we need to evaluate which lists works best with regard to our data set and use case as well as the method to be applied. For this reason, we will identify the words, which have been removed only for one specific list.
+
+```{r}
+
+# Combine the three stopword variables into one data frame
+combined_df <- data.frame(nltk_stopwords = olympics_data_en_full_nltk$nltk_stopwords,
+  smart_stopwords = olympics_data_en_full_smart$smart_stopwords,
+  iso_stopwords = olympics_data_en_full_iso$iso_stopwords,
+  stringsAsFactors = FALSE)
+
+# Function to create a unique word list from a string
+get_unique_words <- function(column) {
+  unique(unlist(str_split(column, ",\\s*")))  # Split by commas and remove spaces Leerzeichen
+}
+
+# Create sets of unique words for each column
+words_nltk <- get_unique_words(combined_df$nltk_stopwords)
+words_smart <- get_unique_words(combined_df$smart_stopwords)
+words_iso <- get_unique_words(combined_df$iso_stopwords)
+
+# Words only in column nltk_stopwords
+unique_nltk <- setdiff(words_nltk, union(words_smart, words_iso))
+
+# Words only in column smart_stopwords
+unique_smart <- setdiff(words_smart, union(words_nltk, words_iso))
+
+# Words only in column iso_stopwords
+unique_iso <- setdiff(words_iso, union(words_nltk, words_smart))
+
+# Display the results
+cat("Words only in nltk_stopwords:", unique_nltk, "\n")
+cat("Words only in smart_stopwords:", unique_smart, "\n")
+cat("Words only in iso_stopwords:", unique_iso, "\n")
+
+```
+
+It appears that there are only unique words removed for the ISO list. When inspecting the words, we find words which do have interpretative meaning regarding our #olympics24 dataset like results, world, top, proud, home, show, test or beginning. This indicates that Stopwords ISO is not the right list for our use case. Let's now compare now only NLTK and SMART in order to identify the best list for our use case. First, let's see which unique words are removed in NLTK but not in SMART and the opposite.
+
+```{r}
+get_unique_words_2 <- function(column) {
+  unique(unlist(str_split(column, ",\\s*")))  # Split by commas and remove spaces Leerzeichen
+}
+
+# Create sets of unique words for each column
+words_nltk <- get_unique_words(combined_df$nltk_stopwords)
+words_smart <- get_unique_words(combined_df$smart_stopwords)
+
+# Words only in column nltk_stopwords
+unique_nltk <- setdiff(words_nltk, words_smart)
+
+# Words only in column smart_stopwords
+unique_smart <- setdiff(words_smart, words_nltk)
+
+# Display the results
+cat("Words only in nltk_stopwords:", unique_nltk, "\n")
+cat("Words only in smart_stopwords:", unique_smart, "\n")
+
+```
+
+It becomes clear that SMART removes more words without any substantial meaning. Still there are some words includes which might be meaningful with regard to our use case like first, last, best or believe. With "ve", there is also one "word" which is removed from our text in NLTK but not in SMART. This is because SMART and NLTK have different strategies of dealing with contradictions.
+
+```{r}
+setdiff(stopwords(source = "nltk"),
+        stopwords(source = "smart"))
+```
+
+NLTK also includes word fragments after removing punctuation like "don", "ll" or "ve". As we already have removed punctuation, we do need to include these forms. A good strategy could therefore be to construct an individualized stopword list on the basis of both lists. This would mean to include the unique NLTK words in SMART and remove words from SMART which are meaningful with regard to our content.
+
+```{r}
+
+```
+
+What has already been true for minor text operations also counts for stopwords: the choice for a concrete stopword list should be taken with regard to the data, case study and method applied.
+
 ### 3.5 Identifying misspelling
 
-Now, we have created one data set with only English language postings. Next, we want to check is whether the text is correct in terms of spelling. Spelling errors are problematic with regard to text data quality as specific words might not be considered as equal to the correct word by specific methods. We therefore want to check the text data for errors. In R, there are many packages for spelling corrections.
+Now, we have created one data set with only English language postings. Next, we want to check whether the text is correct in terms of spelling. Spelling errors are problematic with regard to text data quality as specific words might not be considered as equal to the correct word by specific methods. We therefore want to check the text data for errors. In R, there are many packages for spelling corrections.
 
 ```{r warning=FALSE, message=FALSE}
  
