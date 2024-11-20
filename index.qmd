@@ -1,4 +1,5 @@
 ---
+<<<<<<< HEAD
 title: "TextPrep"
 subtitle: "Comparing Tools and Workflows for Data Quality in Basic Text Preprocessing with R"
 author: "Yannik Peters, Kunjan Shah"
