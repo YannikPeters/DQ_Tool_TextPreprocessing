@@ -3,6 +3,7 @@ title: "TextPrep"
 subtitle: "Comparing Tools and Workflows for Data Quality in Basic Text Preprocessing with R"
 author: "Yannik Peters, Kunjan Shah"
 format: html
+image: "image/icon_textprep.png"
 editor: visual
 bibliography: references.bib
 ---
@@ -33,23 +34,17 @@ We will apply operations from the first three preprocessing steps and evaluate h
 
 # 2. Set up
 
-First, we will load all relevant libraries. Please ensure to have all relevant packages installed using the `install.packages()` command. We will use and also compare functions from some of the most important text preprocessing and analysis R packages such as `quanteda`, `stringr`, `textclean` or `tidytext`. Additionally, we will incorporate specific packages like `skimr`, `spelling`, `polyglotr` or `deeplr` for special purposes.
+First, we will load all relevant libraries. Please ensure to have all relevant packages installed using the `install.packages()` command. We will use and also compare functions from some of the most important text preprocessing and analysis R packages such as `quanteda`, `stringr`, `textclean` or textTinyR. Additionally, we will incorporate specific packages like `skimr`, `polyglotr` or `deeplr` for special purposes.
 
 ```{r message = FALSE, warning = FALSE}
 library(tidyverse)
 library(quanteda)
 library(textclean)
-library(tm)
 library(textTinyR)
 library(tidytext)
 library(skimr)
-library(readr)
-library(dplyr)
-library(spelling) 
-library(hunspell)
 library(polyglotr)
 library(deeplr)
-library(stringr)
 library(stopwords)
 library(stm)
 ```
@@ -57,7 +52,7 @@ library(stm)
 Finally, we will then load our artificial dataset from the Olympic summer games.
 
 ```{r message = FALSE, warning = FALSE}
-olympics_data <- read_csv("Olympics_Summer_1_2024.csv", locale = locale(encoding = "Latin1"))
+olympics_data <- readr::read_csv("Olympics_Summer_2024.csv", locale = locale(encoding = "Latin1"))
 olympics_data
 ```
 
@@ -113,10 +108,10 @@ Of course, this strategy might lead to a representation error as specific conten
 Another way of dealing with multilingual data sets is to create language-specific subsamples of our data. The main advantage of this strategy is, that no content is lost due to exclusion or translation errors. However, compared to the other methods there are more validation steps required for each single language data set (for detailed information see @haukelicht2023, @lind2021a). As we have already created a data set which only contains English tweets, we will create two additional dataframes for German and French tweets.
 
 ```{r warning=FALSE, message=FALSE}
-olympics_data_de <- olympics_data %>% filter(language == "de")
+olympics_data_de <- olympics_data %>% dplyr::filter(language == "de")
 table(olympics_data_de$language)
 
-olympics_data_fr <- olympics_data %>% filter(language == "fr")
+olympics_data_fr <- olympics_data %>% dplyr::filter(language == "fr")
 table(olympics_data_fr$language)
 ```
 
@@ -128,7 +123,7 @@ The third option of dealing with multilingual datasets is to translate the non-E
 
 ```{r message=FALSE, warning=FALSE}
 #Translation of German posts and creation of translated dataframe using Google Translate
-translation_google_de <- google_translate(olympics_data_de$tweet_text, target_language = "en", source_language = "de")
+translation_google_de <- polyglotr::google_translate(olympics_data_de$tweet_text, target_language = "en", source_language = "de")
 translation_google_de <- sapply(translation_google_de, function(x) x[[1]])
 olympics_data_de_google <- olympics_data_de
 olympics_data_de_google$tweet_text <- translation_google_de
@@ -142,7 +137,7 @@ my_key <- "e1b84858-e71d-4be5-a592-f67a6ffb35ea:fx"
 
 ```{r warning=FALSE, message=FALSE, results='hide'}
 #Translation of German posts and creation of translated dataframe using DeepL
-translation_deepl_de <- translate2(olympics_data_de$tweet_text, target_lang = "EN", auth_key = my_key)
+translation_deepl_de <- deeplr::translate2(olympics_data_de$tweet_text, target_lang = "EN", auth_key = my_key)
 olympics_data_de_deepl <- olympics_data_de
 olympics_data_de_deepl$tweet_text <- translation_deepl_de
 ```
@@ -160,14 +155,14 @@ head(olympics_data_de_google$tweet_text)
 head(olympics_data_de_deepl$tweet_text)
 ```
 
-A quick comparison shows that the translations seem pretty similar. We can also use certain metrics to determine the degree of similarity. For this example, we will apply [cosine similarity](https://towardsdatascience.com/overview-of-text-similarity-metrics-3397c4601f50). First, we need to `unlist` our text data, as the `COS_TEXT` function from the `textTidyR` package requires a vector as an input.
+A quick comparison shows that the translations seem pretty similar. We can also use certain metrics to determine the degree of similarity. For this example, we will apply [cosine similarity](https://towardsdatascience.com/overview-of-text-similarity-metrics-3397c4601f50). First, we need to `unlist` our text data, as the `COS_TEXT` function from the `textTinyR` package requires a vector as an input.
 
 ```{r}
 google_translation_de <- unlist(translation_google_de)
 deepl_translation_de <- unlist(translation_deepl_de)
 
 
-cosine_similarities_de <- COS_TEXT(google_translation_de, deepl_translation_de, separator = " ")
+cosine_similarities_de <- textTinyR::COS_TEXT(google_translation_de, deepl_translation_de, separator = " ")
 
 cosine_similarities_de
 mean(cosine_similarities_de)
@@ -177,13 +172,13 @@ With a mean cosine similarity of 0.92 on a scale from 0 to 1, the translations f
 
 ```{r message=FALSE, warning=FALSE}
 #Translation of French posts and creation of translated dataframe using Google Translate
-translation_google_fr <- google_translate(olympics_data_fr$tweet_text, target_language = "en", source_language = "fr")
+translation_google_fr <- polyglotr::google_translate(olympics_data_fr$tweet_text, target_language = "en", source_language = "fr")
 translation_google_fr <- sapply(translation_google_fr, function(x) x[[1]])
 olympics_data_fr_google <- olympics_data_fr
 olympics_data_fr_google$tweet_text <- translation_google_fr
 
 #Translation of French posts and creation of translated dataframe using DeepL
-translation_deepl_fr <- translate2(olympics_data_fr$tweet_text, target_lang = "EN", auth_key = my_key)
+translation_deepl_fr <- deeplr::translate2(olympics_data_fr$tweet_text, target_lang = "EN", auth_key = my_key)
 olympics_data_fr_deepl <- olympics_data_fr
 olympics_data_fr_deepl$tweet_text <- translation_deepl_fr
 
@@ -196,7 +191,7 @@ google_translation_fr <- unlist(translation_google_fr)
 deepl_translation_fr <- unlist(translation_deepl_fr)
 
 #calculate cosine similarities for French translation data
-cosine_similarities_fr <- COS_TEXT(google_translation_fr, deepl_translation_fr, separator = " ")
+cosine_similarities_fr <- textTinyR::COS_TEXT(google_translation_fr, deepl_translation_fr, separator = " ")
 
 cosine_similarities_fr
 mean(cosine_similarities_fr)
@@ -210,11 +205,11 @@ If we combine the translated data sets with the original English language data s
 olympics_data_en_deepl_full <- rbind(olympics_data_en, olympics_data_de_deepl, olympics_data_fr_deepl)
 olympics_data_en_google_full <- rbind(olympics_data_en, olympics_data_de_google, olympics_data_fr_google)
 
-cosine_similarities_full <- COS_TEXT(olympics_data_en_deepl_full$tweet_text, olympics_data_en_google_full$tweet_text, separator = " ")
+cosine_similarities_full <- textTinyR::COS_TEXT(olympics_data_en_deepl_full$tweet_text, olympics_data_en_google_full$tweet_text, separator = " ")
 mean(cosine_similarities_full)
 ```
 
-The key question for us is now: Should we use the translation of DeepL or Google Translate? Generally, DeepL is considered to be more accurate than Google Translate (e.g. [here](https://www.geeksforgeeks.org/deepl-vs-google/)). Still, Google Translate has proven to be highly accurate for calculating topic models [@devries2018]. In current research, both tools are considered suitable. For the translation of Spanish idiomatic expressions into English, @hidalgo-ternero2021 found DeepL to perform slightly better, with an average accuracy rate of 89%, than Google Translate at 86%. @sebo2024 did not find significant differences in the accuracy of the two tools. One of the major advantages of Google Translate is that it can be applied to significantly more languages than DeepL. Since we only need to translate two languages in our case, we will use the DeepL translation here.
+The key question for us is now: Should we use the translation of DeepL or Google Translate? Generally, DeepL is considered to be more accurate than Google Translate (e.g. [here](https://www.geeksforgeeks.org/deepl-vs-google/)). Still, Google Translate has proven to be highly accurate for calculating topic models [@devries2018]. In current research, both tools are considered suitable. For the translation of Spanish idiomatic expressions into English, @hidalgo-ternero2021 found DeepL to perform slightly better, with an average accuracy rate of 89%, than Google Translate at 86%. @sebo2024 did not find significant differences in the accuracy of the two tools. One of the major advantages of Google Translate is that it can be applied to significantly more languages than DeepL. We will therefore use Google Translate here.
 
 ```{r}
 olympics_data_en_full <- olympics_data_en_google_full
@@ -239,24 +234,24 @@ Different methods in Computational Social Science require varying strategies of 
 In our case, we will later apply STM, which is based on a bag of word approach. Therefore, we will apply some operations like removing hashtags, punctuaction or URLs. Before we do so, let's check the length of our documents.
 
 ```{r}
-sum(str_count(olympics_data_en_full$tweet_text, '\\w+'))
+sum(stringr::str_count(olympics_data_en_full$tweet_text, '\\w+'))
 ```
 
 First, we will remove all hashtags from the original text and save them in a separate column. After compareing functions from multiple packages, we decided to use the one from `textclean`, because the ones from the other packages performed slightly less accurate (e.g. some were unable to remove punctuation at the end of an hashtag within a sentence). Removing hashtags from the text is advisable in our case, as we are analyzing tweets that all contain #Olympics2024. In a topic model, #Olympics2024 would likely be closely associated to every topic and would not add significant value to the interpretation.
 
 ```{r message=FALSE, warning=FALSE}
 olympics_data_en_full_rem <- olympics_data_en_full %>%
- mutate(
+ dplyr::mutate(
         	# Extract hashtags
               	Hashtags = sapply(str_extract_all(`tweet_text`, "#\\w+"), paste, collapse = " "),
         	
               	# Remove hashtags from the original text
-            `tweet_text` = replace_hash(`tweet_text`, replacement = "")
+            `tweet_text` = textclean::replace_hash(`tweet_text`, replacement = "")
       	) %>%
   	# Clean up any extra whitespace left after removing hashtags
-      mutate(`tweet_text` = str_squish(`tweet_text`))
+      mutate(`tweet_text` = stringr::str_squish(`tweet_text`))
 
-sum(str_count(olympics_data_en_full_rem$tweet_text, '\\w+'))
+sum(stringr::str_count(olympics_data_en_full_rem$tweet_text, '\\w+'))
 ```
 
 Removing the hashtags has reduced our total word count by more than 400 words. In addition to the hashtags, we also want to remove special characters such as URLs, punctuation or usernames as they do not add relevant information in BoW models like LDA or STM. Instead, they rather increase the number of words (tokens) to analyze and therefore the calculation time. Again, we will store the \@-mentions in a separate column to preserve information. Finally, as a last step of minor text operations, we will convert the entire text to lowercase in order to ensure the same word is not treated differently due to capitalization.
@@ -264,9 +259,9 @@ Removing the hashtags has reduced our total word count by more than 400 words. I
 ```{r message=FALSE, warning=FALSE}
 # Create a new column for usernames and then clean the text
 olympics_data_en_full_rem <- olympics_data_en_full_rem %>%
-  mutate(
+  dplyr::mutate(
     #Store the usernames in a new column
-    user_mentions = str_extract_all(tweet_text, "@\\w+") %>% 
+    user_mentions = stringr::str_extract_all(tweet_text, "@\\w+") %>% 
       sapply(paste, collapse = ", "),  # Extract usernames with '@'
     
     # Clean the text
@@ -282,7 +277,7 @@ olympics_data_en_full_rem <- olympics_data_en_full_rem %>%
 
 head(olympics_data_en_full_rem$tweet_text)
 
-sum(str_count(olympics_data_en_full_rem$tweet_text, '\\w+'))
+sum(stringr::str_count(olympics_data_en_full_rem$tweet_text, '\\w+'))
 
 ```
 
@@ -306,7 +301,7 @@ olympics_data_en_full_iso <- olympics_data_en_full_rem
 #function to extract stopwords
 extract_stopwords <- function(text, source) {
      # Get stopwords for the specified source
-     stops <- stopwords(language = "en", source = source)
+     stops <- stopwords::stopwords(language = "en", source = source)
      # Split into words
      words <- text %>%
          strsplit("\\s+") %>%
@@ -318,21 +313,21 @@ extract_stopwords <- function(text, source) {
  }
 # Apply extraction for each source
 olympics_data_en_full_nltk <- olympics_data_en_full_nltk %>%
-     mutate(
+     dplyr::mutate(
          nltk_stopwords = sapply(tweet_text, extract_stopwords, source = "nltk"))
 
 olympics_data_en_full_smart <- olympics_data_en_full_smart %>%
-     mutate(
+     dplyr::mutate(
          smart_stopwords = sapply(tweet_text, extract_stopwords, source = "smart"))
 
 olympics_data_en_full_iso <- olympics_data_en_full_iso %>%
-     mutate(
+     dplyr::mutate(
          iso_stopwords = sapply(tweet_text, extract_stopwords, source = "stopwords-iso"))
 
 #number of stopwords (unique stopwords per row)
-sum(str_count(olympics_data_en_full_nltk$nltk_stopwords, '\\w+'))
-sum(str_count(olympics_data_en_full_smart$smart_stopwords, '\\w+'))
-sum(str_count(olympics_data_en_full_iso$iso_stopwords, '\\w+'))
+sum(stringr::str_count(olympics_data_en_full_nltk$nltk_stopwords, '\\w+'))
+sum(stringr::str_count(olympics_data_en_full_smart$smart_stopwords, '\\w+'))
+sum(stringr::str_count(olympics_data_en_full_iso$iso_stopwords, '\\w+'))
 ```
 
 As expected, for our artificial data set, the Stopwords ISO list would remove the highest number of words from our text. Even though it contains more than twice as many words as the SMART list, the difference between the two lists is only 83 words. The larger gap is observed between SMART and NLTK. This is likely due to the fact that certain shared stopwords are highly represented across many tweets, while some of the unique words of the respective lists occur relatively rarely. Let's now apply the three lists and compare the similarity between the procrossed text columns.
@@ -341,7 +336,7 @@ As expected, for our artificial data set, the Stopwords ISO list would remove th
 
 remove_stopwords <- function(data, text_column, stopword_source) {
   # Get stopwords from the stopwords package
-  stops <- stopwords(language = "en", source = stopword_source)
+  stops <- stopwords::stopwords(language = "en", source = stopword_source)
   
   # Remove stopwords from the specified text column
   data[[text_column]] <- sapply(data[[text_column]], function(text) {
@@ -359,9 +354,9 @@ olympics_data_en_full_smart <- remove_stopwords(olympics_data_en_full_smart, "tw
 olympics_data_en_full_iso <- remove_stopwords(olympics_data_en_full_iso, "tweet_text", "stopwords-iso")
 
 # Calculating cosine similarity
-cosine_similarities_nltk_smart <- COS_TEXT(olympics_data_en_full_nltk$tweet_text, olympics_data_en_full_smart$tweet_text, separator = " ")
-cosine_similarities_nltk_iso <- COS_TEXT(olympics_data_en_full_nltk$tweet_text, olympics_data_en_full_iso$tweet_text, separator = " ")
-cosine_similarities_smart_iso <- COS_TEXT(olympics_data_en_full_smart$tweet_text, olympics_data_en_full_iso$tweet_text, separator = " ")
+cosine_similarities_nltk_smart <- textTinyR::COS_TEXT(olympics_data_en_full_nltk$tweet_text, olympics_data_en_full_smart$tweet_text, separator = " ")
+cosine_similarities_nltk_iso <- textTinyR::COS_TEXT(olympics_data_en_full_nltk$tweet_text, olympics_data_en_full_iso$tweet_text, separator = " ")
+cosine_similarities_smart_iso <- textTinyR::COS_TEXT(olympics_data_en_full_smart$tweet_text, olympics_data_en_full_iso$tweet_text, separator = " ")
 
 mean(cosine_similarities_nltk_smart)
 mean(cosine_similarities_nltk_iso)
@@ -381,7 +376,7 @@ combined_df <- data.frame(nltk_stopwords = olympics_data_en_full_nltk$nltk_stopw
 
 # Function to create a unique word list from a string
 get_unique_words <- function(column) {
-  unique(unlist(str_split(column, ",\\s*")))  # Split by commas and remove spaces
+  unique(unlist(stringr::str_split(column, ",\\s*")))  # Split by commas and remove spaces
 }
 
 # Create sets of unique words for each column
@@ -409,7 +404,7 @@ It appears that only the ISO list removed unique words. Among these words, we fi
 
 ```{r message=FALSE, warning=FALSE}
 get_unique_words_2 <- function(column) {
-  unique(unlist(str_split(column, ",\\s*")))  # Split by commas and remove spaces Leerzeichen
+  unique(unlist(stringr::str_split(column, ",\\s*")))  # Split by commas and remove spaces Leerzeichen
 }
 
 # Create sets of unique words for each column
@@ -431,8 +426,8 @@ cat("Words only in smart_stopwords:", unique_smart, "\n")
 It becomes clear that SMART removes more words without any substantial meaning. However, it still includes some words that could be meaningful for use case, such as first, last, best or together. Additionally, the token "ve" is removed by NLTK but not by SMART. This difference arises because SMART and NLTK use different strategies for handling contradictions.
 
 ```{r message=FALSE, warning=FALSE}
-setdiff(stopwords(source = "nltk"),
-        stopwords(source = "smart"))
+setdiff(stopwords::stopwords(source = "nltk"),
+        stopwords::stopwords(source = "smart"))
 ```
 
 NLTK also retains word fragments after removing punctuation like "don", "ll" or "ve". Since we have already removed punctuation, we do need to include these forms. A good strategy could therefore be to construct a customized stopword list based on both lists. This would involve incorparating the relevant, unique NLTK words in SMART while excluding words from SMART thate are meaningful for our subject.
@@ -496,10 +491,10 @@ remove_stopwords_2 <- function(data, text_column, new_column_removed = "stopword
 olympics_data_en_full_smart_adapted <- remove_stopwords_2(olympics_data_en_full_rem, "tweet_text")
 
 
-sum(str_count(olympics_data_en_full_nltk$tweet_text, '\\w+'))
-sum(str_count(olympics_data_en_full_smart_adapted$tweet_text, '\\w+'))
-sum(str_count(olympics_data_en_full_smart$tweet_text, '\\w+'))
-sum(str_count(olympics_data_en_full_iso$tweet_text, '\\w+'))
+sum(stringr::str_count(olympics_data_en_full_nltk$tweet_text, '\\w+'))
+sum(stringr::str_count(olympics_data_en_full_smart_adapted$tweet_text, '\\w+'))
+sum(stringr::str_count(olympics_data_en_full_smart$tweet_text, '\\w+'))
+sum(stringr::str_count(olympics_data_en_full_iso$tweet_text, '\\w+'))
 
 
 ```
@@ -507,7 +502,7 @@ sum(str_count(olympics_data_en_full_iso$tweet_text, '\\w+'))
 As we can see, our adapted SMART list removed slightly fewer stop words than the original version, despite adding more words than we removed.
 
 ::: callout-important
-In addition to modifying existing stopword lists, it is also possible to create your own stopword lists based on the specific data set [@hvitfeldt2021g]. Words with a very high frequency (and possibly also those with a very low frequency) are often selected for this purpose. The advantage of this strategy is that the stopword list is created from the use case. However, the determination of threshold values and the inclusion of meaningful words also pose challenges here.
+In addition to modifying existing stopword lists, it is also possible to create your own stopword lists based on the specific data set [@hvitfeldt2021g]. Words with a very high frequency (and possibly also those with a very low frequency) are often selected for this purpose. The advantage of this strategy is that the stopword list is created from the use case. However, the determination of threshold values and the inclusion of meaningful words also pose challenges here. In addition to creating corpus-specific stopword lists, some researcher also recommended to perform this step not before but after modeling [@schofield2017].
 :::
 
 What has already been true for minor text operations also applies to stopwords: the choice of a specific stopword list should depend on the data type, the use case and method applied. For example, @hvitfeldt2021d found with regard to their particular data set and their supervised approach,"the results for all stop word lexicons are worse than removing no stop words at all". It is also not recommended to use these stopword lists for sentiment analyses, as negations (e.g. not, don't etc.) are also removed. For STM however, removing stopwords is crucial to increase the model's interpretability.
@@ -519,16 +514,16 @@ Creating a `document-feature-matrix` (DFM), or more specifically a `document-ter
 ```{r message=FALSE, warning=FALSE}
 lemma_en <- read.csv("lemma_en.csv")  
 
-olympics_en_dfm_level3 <- corpus(olympics_data_en_full_smart_adapted$tweet_text, docnames = olympics_data_en_full_smart_adapted$no) %>%
+olympics_en_dfm_level3 <- quanteda::corpus(olympics_data_en_full_smart_adapted$tweet_text, docnames = olympics_data_en_full_smart_adapted$no) %>%
   # tokenize and remove numbers and symbols
-  tokens(.,remove_numbers=TRUE, remove_symbols = TRUE) %>%
+  quanteda::tokens(.,remove_numbers=TRUE, remove_symbols = TRUE) %>%
   # lemmatize
-  tokens_replace(lemma_en$inflected_form, lemma_en$lemma, 
+  quanteda::tokens_replace(lemma_en$inflected_form, lemma_en$lemma, 
                  valuetype = "fixed") %>%
   # convert to document-feature-matrix
-  dfm() %>%
+  quanteda::dfm() %>%
   # remove texts that are empty after pre-processing
-  dfm_subset(., ntoken(.) > 0)
+  quanteda::dfm_subset(., ntoken(.) > 0)
 
 head(olympics_en_dfm_level3)
 save(olympics_en_dfm_level3, file = "olympics_en_dfm")
@@ -551,31 +546,31 @@ Be aware that we do not apply all possible preprocessing steps, which might impr
 
 ```{r message=FALSE, warning=FALSE}
 #creating level 0 dfm
-olympics_en_dfm_level0 <- corpus(olympics_data_en_full$tweet_text, docnames = olympics_data_en_full$no) %>%
+olympics_en_dfm_level0 <- quanteda::corpus(olympics_data_en_full$tweet_text, docnames = olympics_data_en_full$no) %>%
   # tokenize
-  tokens(.) %>%
+  quanteda::tokens(.) %>%
   # convert to document-feature-matrix
-  dfm() %>%
+  quanteda::dfm() %>%
   # remove texts that are empty after pre-processing
-  dfm_subset(., ntoken(.) > 0)
+  quanteda::dfm_subset(., ntoken(.) > 0)
 
 #creating level 1 dfm
-olympics_en_dfm_level1 <- corpus(olympics_data_en_full_rem$tweet_text, docnames = olympics_data_en_full$no) %>%
+olympics_en_dfm_level1 <- quanteda::corpus(olympics_data_en_full_rem$tweet_text, docnames = olympics_data_en_full$no) %>%
   # tokenize remove numbers and symbols
-  tokens(.,remove_numbers=TRUE, remove_symbols=TRUE) %>%
+  quanteda::tokens(.,remove_numbers=TRUE, remove_symbols=TRUE) %>%
   # convert to document-feature-matrix
-  dfm()%>%
+  quanteda::dfm()%>%
   # remove texts that are empty after pre-processing
-  dfm_subset(., ntoken(.) > 0)
+  quanteda::dfm_subset(., ntoken(.) > 0)
 
 #creating level 2 dfm
-olympics_en_dfm_level2 <- corpus(olympics_data_en_full_smart_adapted$tweet_text, docnames = olympics_data_en_full$no) %>%
+olympics_en_dfm_level2 <- quanteda::corpus(olympics_data_en_full_smart_adapted$tweet_text, docnames = olympics_data_en_full$no) %>%
   # tokenize and remove numbers and symbols
-  tokens(.,remove_numbers=TRUE, remove_symbols=TRUE) %>%
+  quanteda::tokens(.,remove_numbers=TRUE, remove_symbols=TRUE) %>%
   # convert to document-feature-matrix
-  dfm()%>%
+  quanteda::dfm()%>%
   # remove texts that are empty after pre-processing
-  dfm_subset(., ntoken(.) > 0)
+  quanteda::dfm_subset(., ntoken(.) > 0)
 ```
 
 Let's now compare the DFMs with regard to their general descriptive statistics.
@@ -625,7 +620,7 @@ for (level in names(dfms)) {
 print(dfm_summary)
 ```
 
-While the number of tweets remains unaffected by preprocessing at 150, the vocabulary in terms of unique words is significantly reduced by about 46% from level 0 to level 3. With regard to the absolute number of tokens, it is even 65%. It is noticeable that level 2 and 3 are identical in the total number of tokens. This is because all words are replaced during lemmatization, while only the number of unique tokens is reduced. It also becomes clear that the number of tokens differs from what we counted at the beginning with `str_count`. This is due to the fact that the `tokens`-function from `quanteda` has a different strategy to identify tokens. For example, punctuation marks or numbers are also considered as individual tokens by `tokens` function. Compared to other packages, this approach is well-suited for our purpose of comparing different degrees of preprocessing. For example, the `unnest_token` function of the `tidytext` package automatically removes punctuation when tokenizing. However, since we also want to include a model without elementary pattern-based preprocessing for our comparison, this is ideal. Given that the token function from `quanteda` allows the user to customize the process and is open for fine-tuning (e.g. by using `remove_punct` etc.), it is preferable for our use case.
+While the number of tweets remains unaffected by preprocessing at 150, the vocabulary in terms of unique words is significantly reduced by about 44% from level 0 to level 3. With regard to the absolute number of tokens, it is even 65%. It is noticeable that level 2 and 3 are identical in the total number of tokens. This is because all words are replaced during lemmatization, while only the number of unique tokens is reduced. It also becomes clear that the number of tokens differs from what we counted at the beginning with `str_count`. This is due to the fact that the `tokens`-function from `quanteda` has a different strategy to identify tokens. For example, punctuation marks or numbers are also considered as individual tokens by `tokens` function. Compared to other packages, this approach is well-suited for our purpose of comparing different degrees of preprocessing. For example, the `unnest_token` function of the `tidytext` package automatically removes punctuation when tokenizing. However, since we also want to include a model without elementary pattern-based preprocessing for our comparison, this is ideal. Given that the token function from `quanteda` allows the user to customize the process and is open for fine-tuning (e.g. by using `remove_punct` etc.), it is preferable for our use case.
 
 ### 3.7 Topic Modeling
 
@@ -647,28 +642,28 @@ We can, therefore, directly compare the topics modeled in LDA with the topics we
 
 N=10
 
-dfm_stm0 <- convert(olympics_en_dfm_level0, to ="stm") 
-dfm_stm1 <- convert(olympics_en_dfm_level1, to ="stm") 
-dfm_stm2 <- convert(olympics_en_dfm_level2, to ="stm") 
-dfm_stm3 <- convert(olympics_en_dfm_level3, to ="stm") 
+dfm_stm0 <- quanteda::convert(olympics_en_dfm_level0, to ="stm") 
+dfm_stm1 <- quanteda::convert(olympics_en_dfm_level1, to ="stm") 
+dfm_stm2 <- quanteda::convert(olympics_en_dfm_level2, to ="stm") 
+dfm_stm3 <- quanteda::convert(olympics_en_dfm_level3, to ="stm") 
 
-STM_0 <- stm(dfm_stm0$documents, dfm_stm0$vocab, K = N, data = dfm_stm0$meta, max.em.its = 75, init.type = "Spectral")
+STM_0 <- stm::stm(dfm_stm0$documents, dfm_stm0$vocab, K = N, data = dfm_stm0$meta, max.em.its = 75, init.type = "Spectral")
 
-STM_1 <- stm(dfm_stm1$documents, dfm_stm1$vocab, K = N, data = dfm_stm1$meta, max.em.its = 75, init.type = "Spectral")
+STM_1 <- stm::stm(dfm_stm1$documents, dfm_stm1$vocab, K = N, data = dfm_stm1$meta, max.em.its = 75, init.type = "Spectral")
 
-STM_2 <- stm(dfm_stm2$documents, dfm_stm2$vocab, K = N, data = dfm_stm2$meta, max.em.its = 75, init.type = "Spectral")
+STM_2 <- stm::stm(dfm_stm2$documents, dfm_stm2$vocab, K = N, data = dfm_stm2$meta, max.em.its = 75, init.type = "Spectral")
 
-STM_3 <- stm(dfm_stm3$documents, dfm_stm3$vocab, K = N, data = dfm_stm3$meta, max.em.its = 75, init.type = "Spectral")
+STM_3 <- stm::stm(dfm_stm3$documents, dfm_stm3$vocab, K = N, data = dfm_stm3$meta, max.em.its = 75, init.type = "Spectral")
 
 ```
 
 Let's inspect the most important terms per topic.
 
 ```{r message=FALSE,warning=FALSE}
-STM_0_labels <- as.data.frame(t(labelTopics(STM_0, n = 7)$prob))
-STM_1_labels <- as.data.frame(t(labelTopics(STM_1, n = 7)$prob))
-STM_2_labels <- as.data.frame(t(labelTopics(STM_2, n = 7)$prob))
-STM_3_labels <- as.data.frame(t(labelTopics(STM_3, n = 7)$prob))
+STM_0_labels <- as.data.frame(t(stm::labelTopics(STM_0, n = 7)$prob))
+STM_1_labels <- as.data.frame(t(stm::labelTopics(STM_1, n = 7)$prob))
+STM_2_labels <- as.data.frame(t(stm::labelTopics(STM_2, n = 7)$prob))
+STM_3_labels <- as.data.frame(t(stm::labelTopics(STM_3, n = 7)$prob))
 
 STM_0_labels
 STM_1_labels
@@ -676,17 +671,17 @@ STM_2_labels
 STM_3_labels
 ```
 
-As we can see, our topics become more meaningful the more preprocessing steps are applied. Especially the models at level 0 and level 1 are not clear as they mostly consists of stopwords like "the", "of", "is", "to" or "at". Regarding level 2 and 3 we do find overlapping topics of course, but also some differences. A comparison of the topics implemented in advance with the ones in model 3 reveals a number of similarities. For example, we find doping in Topic 1, gold medal winners in Topic 6 and athletes in Topic 8. The various sports competitions are more strongly represented in some themes (e.g. in theme 9 basketball, in theme 5 soccer) and less strongly in others (in theme 4 wrestling, in theme 7 gymnastics and in theme 8 swimming). The ceremonies can be found in topics 2, 3 and 10, although there is no genuine one. In order to represent topic interpretability numerically, often coders summarize the top terms and assign topic labels. Statistical agreement coefficients such as Krippendorff's alpha [@krippendorff2004] would then be calculated. For the purpose of this tutorial, we won't calculate topic interpretability with human coders, but only compare key internal metrics like [semantic coherence and exclusivity](https://mallet.cs.umass.edu/diagnostics.php). Semantic coherence refers to the degree of which top terms from the same topic occur in the same document. Exclusivity, on the other hand, refers to the degree of how unique the top terms in each topic are compared to other topics. Usually, the relationship between topic coherence and exclusivity is asymmetrical.
+As we can see, our topics become more meaningful the more preprocessing steps are applied. Especially the models at level 0 and level 1 are not clear as they mostly consists of stopwords like "the", "of", "is", "to" or "at". Regarding level 2 and 3 we do find overlapping topics of course, but also some differences. A comparison of the topics implemented in advance with the ones in model 3 reveals a number of similarities. On the one hand, we find topics on doping and athletic performance. On the other hand, the various sports competitions are not as distinct. The ceremonies can be found in multiple topics, although there is no genuine one. In order to represent topic interpretability numerically, often coders summarize the top terms and assign topic labels. Statistical agreement coefficients such as Krippendorff's alpha [@krippendorff2004] would then be calculated. For the purpose of this tutorial, we won't calculate topic interpretability with human coders, but only compare key internal metrics like [semantic coherence and exclusivity](https://mallet.cs.umass.edu/diagnostics.php). Semantic coherence refers to the degree of which top terms from the same topic occur in the same document. Exclusivity, on the other hand, refers to the degree of how unique the top terms in each topic are compared to other topics. Usually, the relationship between topic coherence and exclusivity is asymmetrical.
 
 ```{r message=FALSE, warning=FALSE}
 #calculating model statistics
 compute_metrics <- function(stm_model, documents, model_name, num_topics = 10) {
   #Semantic Coherence
-  semantic_coherence <- semanticCoherence(stm_model, documents)
+  semantic_coherence <- stm::semanticCoherence(stm_model, documents)
   mean_coherence <- sum(semantic_coherence) / num_topics
   
   #Exclusivity
-  exclusivity <- exclusivity(stm_model)
+  exclusivity <- stm::exclusivity(stm_model)
   mean_exclusivity <- sum(exclusivity) / num_topics
   
   #return values as a list
@@ -718,7 +713,7 @@ y_min <- 9.0
 y_max <- 9.5
 
 # creating a Scatterplot 
-ggplot(results_df, aes(x = Mean_Coherence, y = Mean_Exclusivity, color = Model)) +
+ggplot2::ggplot(results_df, aes(x = Mean_Coherence, y = Mean_Exclusivity, color = Model)) +
   geom_point(size = 5, alpha = 0.8) +       
   geom_text(aes(label = Model), vjust = -1.2, hjust = 0.5, color = "black") + 
   scale_color_viridis_d(option = "plasma", end = 0.9) + 
@@ -740,7 +735,7 @@ ggplot(results_df, aes(x = Mean_Coherence, y = Mean_Exclusivity, color = Model))
 
 ```
 
-The comparison of the models highlights the impact of our preprocessing steps on these two metrics. For semantic coherence, it is evident that the more preprocessing steps are applied, the less coherent the models become. This is primarily because for model 0 and 1, topics include tokens occuring very frequently in the data set and appear across multiple topics (e.g. stopwords). In contrast, the exclusivity score increases with greater preprocessing, although lemmatization seems to have only a minimal effect on this data set. This is evident as models 2 and 3 have almost identical coherence and exclusivity values and therefore form a small cluster. However, differences in coherence and exclusivity emerge earlier between models 1 and 2, highlighting the impact of minor text operations. The even greater distance between model 2 and model 3 is significant, underscoring the substantial effect of stopword removal on these metrics. Even though it is shown for our data set that preprocessing results in lower coherence values, this does not argue against the procedure itself. Rather, it indicates 1) that in text preprocessing a certain level of exclusivity must be reached to model meaningful topics, 2) that topic coherence in the use case of preprocessing does not correspond to topic interpretality and 3) how important the manual interpretation and validation of the topics are. Still, this approach offers a structured strategy for evaluating the effects of preprocessing on topic modeling.
+The comparison of the models highlights the impact of our preprocessing steps on these two metrics. For semantic coherence, it is evident that the more preprocessing steps are applied, the less coherent the models become. This is primarily because for model 0 and 1, topics include tokens occuring very frequently in the data set and appear across multiple topics (e.g. stopwords). In contrast, the exclusivity score increases with greater preprocessing as topics are less dominated by highly frequent tokens. We already find some smaller differences between model 1 and 2, highlighting the impact of minor text operations. The greatest distance occurs between model 2 and model 3, underscoring the substantial effect of stopword removal on these metrics. Even though it is shown for our data set that preprocessing results in lower coherence values, this does not argue against the procedure itself. Rather, it indicates 1) that in text preprocessing a certain level of exclusivity must be reached to model meaningful topics, 2) that topic coherence in the use case of preprocessing does not correspond to topic interpretality and 3) how important the manual interpretation and validation of the topics are. Still, this approach offers a structured strategy for evaluating the effects of preprocessing on topic modeling. Still, especially for smaller data sets, these metrics are sensitive and can vary even with smaller changes in the data, which have to be considered.
 
 # 4. Discussion
 
