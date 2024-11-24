@@ -526,7 +526,6 @@ olympics_en_dfm_level3 <- quanteda::corpus(olympics_data_en_full_smart_adapted$t
   quanteda::dfm_subset(., ntoken(.) > 0)
 
 head(olympics_en_dfm_level3)
-save(olympics_en_dfm_level3, file = "olympics_en_dfm")
 ```
 
 We have now created a DFM for our preprocessed data set. However, it would be valuable to evaluate how the analyses differ when using different levels of preprocessing. In our pipeline so far, we have used approaches of three categories of text preprocessing as defined by @churchill2021: elementary pattern-based preprocessing (e.g. removal of punctuation), dictionary-based preprocessing (e.g. stopword removal), natural language preprocessing (e.g. lemmatization). We will therefore consider it as level 3 preprocessed data. Let's define three additional preprocessing levels.
