@@ -30,11 +30,11 @@ In this tutorial we aim to explore different levels of text preprocessing and co
 | Natural language preprocessing | e.g. stemming, lemmatization |
 | Statistical preprocessing | e.g. removal of tokens with high and low frequency |
 
-We will apply operations from the first three preprocessing steps and evaluate how different choices for these steps impact our data. In the final step, we will use differently preprocessed text data to apply Structural Topic Modeling (STM) [@roberts2019] and compare differences in the analysis. For this purpose, we created a small social media data set with posts about the Olympic summer games in Paris 2024, supposedly "collected" from the #Olympics2024. For copyright reasons, we have constructed an artificial data set that does not contain any real content. The Olympic summer games can be considered a transnational media event [@hepp2015], which today is, of course, not only covered by traditional media but is communicatively accompanied on social media.
+We will apply operations from the first three preprocessing steps and evaluate how different choices for these steps impact our data. In this respect, data quality is not only a fixed condition but also a set of practices: "doing data quality". In this tutorial, we emphasize the practice of comparison, i.e. determining which options of preprocessing influence the data (quality) and how. In the final step, we will use differently preprocessed text data to apply Structural Topic Modeling (STM) [@roberts2019] and compare differences in the analysis. For this purpose, we created a small social media data set with posts about the Olympic summer games in Paris 2024, supposedly "collected" from the #Olympics2024. For copyright reasons, we have constructed an artificial data set that does not contain any real content. The Olympic summer games can be considered a transnational media event [@hepp2015], which today is, of course, not only covered by traditional media but is communicatively accompanied on social media.
 
 # 2. Set up
 
-First, we will load all relevant libraries. Please ensure to have all relevant packages installed using the `install.packages()` command. We will use and also compare functions from some of the most important text preprocessing and analysis R packages such as `quanteda`, `stringr`, `textclean` or textTinyR. Additionally, we will incorporate specific packages like `skimr`, `polyglotr` or `deeplr` for special purposes.
+First, we will load all relevant libraries. Please ensure to have all relevant packages installed using the `install.packages()` command. We will use and also compare functions from some of the most important text preprocessing and analysis R packages such as `quanteda`, `stringr`, `textclean` or `textTinyR`. Additionally, we will incorporate specific packages like `skimr`, `polyglotr` or `deeplr` for special purposes.
 
 ```{r message = FALSE, warning = FALSE}
 library(tidyverse)
@@ -52,7 +52,8 @@ library(stm)
 Finally, we will then load our artificial dataset from the Olympic summer games.
 
 ```{r message = FALSE, warning = FALSE}
-olympics_data <- readr::read_csv("Olympics_Summer_2024.csv", locale = locale(encoding = "Latin1"))
+url <- "https://raw.githubusercontent.com/YannikPeters/DQ_Tool_TextPreprocessing/main/data/Olympics_Summer_1_2024.csv"
+olympics_data <- readr::read_csv(url, locale = locale(encoding = "Latin1"))
 olympics_data
 ```
 
@@ -132,7 +133,7 @@ olympics_data_de_google$tweet_text <- translation_google_de
 To access the DeepL API, you need a developer account. You can use this [link](https://www.deepl.com/en/pro/change-plan#developer) to reach the registration page. A free account allows you to translate up to 500,000 characters per month and provides access to the DeepL Rest API. To translate text data using DeepL in R, you first need the API-key. When signing up for a developer account, you will automatically receive this key.
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
-my_key <- "e1b84858-e71d-4be5-a592-f67a6ffb35ea:fx"
+my_key <- "37cbfea5-12e9-4062-bdd4-04bdca6aef75:fx"
 ```
 
 ```{r warning=FALSE, message=FALSE, results='hide'}
@@ -168,7 +169,7 @@ cosine_similarities_de
 mean(cosine_similarities_de)
 ```
 
-With a mean cosine similarity of 0.92 on a scale from 0 to 1, the translations from Google Translate and DeepL are indeed very similar. We can apply the same process for the French postings.
+With a mean cosine similarity of 0.90 on a scale from 0 to 1, the translations from Google Translate and DeepL are indeed very similar. We can apply the same process for the French postings.
 
 ```{r message=FALSE, warning=FALSE}
 #Translation of French posts and creation of translated dataframe using Google Translate
@@ -197,7 +198,7 @@ cosine_similarities_fr
 mean(cosine_similarities_fr)
 ```
 
-With an average cosine similarity of 0.87, the French translation is slightly less similar than the German one.
+With an average cosine similarity of 0.85, the French translation is slightly less similar than the German one.
 
 If we combine the translated data sets with the original English language data set and then compare the cosine similarity, it is of course higher with 0,98. So in this case, the difference of our combined data set is minimal. This would, of course, be different if the amount of non-English content were higher.
 
@@ -209,10 +210,13 @@ cosine_similarities_full <- textTinyR::COS_TEXT(olympics_data_en_deepl_full$twee
 mean(cosine_similarities_full)
 ```
 
-The key question for us is now: Should we use the translation of DeepL or Google Translate? Generally, DeepL is considered to be more accurate than Google Translate (e.g. [here](https://www.geeksforgeeks.org/deepl-vs-google/)). Still, Google Translate has proven to be highly accurate for calculating topic models [@devries2018]. In current research, both tools are considered suitable. For the translation of Spanish idiomatic expressions into English, @hidalgo-ternero2021 found DeepL to perform slightly better, with an average accuracy rate of 89%, than Google Translate at 86%. @sebo2024 did not find significant differences in the accuracy of the two tools. One of the major advantages of Google Translate is that it can be applied to significantly more languages than DeepL. We will therefore use Google Translate here.
+The key question for us is now: Should we use the translation of DeepL or Google Translate? Generally, DeepL is considered to be more accurate than Google Translate (e.g. [here](https://www.geeksforgeeks.org/deepl-vs-google/)). Still, Google Translate has proven to be highly accurate for calculating topic models [@devries2018]. In current research, both tools are considered suitable. For the translation of Spanish idiomatic expressions into English, @hidalgo-ternero2021 found DeepL to perform slightly better, with an average accuracy rate of 89%, than Google Translate at 86%. @sebo2024 did not find significant differences in the accuracy of the two tools. One of the major advantages of Google Translate is that it can be applied to significantly more languages than DeepL. As we had to translate only two languages in our example data, we will use DeepL for this example.
 
 ```{r}
-olympics_data_en_full <- olympics_data_en_google_full
+url_2 <- "https://raw.githubusercontent.com/YannikPeters/DQ_Tool_TextPreprocessing/main/data/olympics_data_en_deepl_full.csv"
+olympics_data_en_full <- readr::read_csv(url_2, locale = locale(encoding = "Latin1"))
+olympics_data_en_full
+
 ```
 
 ::: callout-important
@@ -512,7 +516,8 @@ What has already been true for minor text operations also applies to stopwords: 
 Creating a `document-feature-matrix` (DFM), or more specifically a `document-term-matrix`, is a common way to structure text data before analysis. The matrix consists of documents in rows and words in columns displaying the frequency of each word for each document. In order to do so, we first have to tokenize our text data, breaking it into words as smaller sub unit. Before creating such a matrix of tokenized words, it is advisable to lemmatize the words first. Lemmatization refers to the process of merging inflected words into their root form, known as the lemma. In contrast to stemming, which simply removes common suffixes from words, lemmatization results in normalized words. For lemmatization, we will first use the lemma_en.csv list stored in the Git repository. To use the csv file, you have to save it in our local working environment.
 
 ```{r message=FALSE, warning=FALSE}
-lemma_en <- read.csv("lemma_en.csv")  
+url_3 <- "https://raw.githubusercontent.com/YannikPeters/DQ_Tool_TextPreprocessing/main/lemma_en.csv"
+lemma_en <- readr::read_csv(url_3)
 
 olympics_en_dfm_level3 <- quanteda::corpus(olympics_data_en_full_smart_adapted$tweet_text, docnames = olympics_data_en_full_smart_adapted$no) %>%
   # tokenize and remove numbers and symbols
@@ -706,10 +711,14 @@ results_df <- do.call(rbind, results)
 print(results_df)
 
 # value range for plot
-x_min <- -170
-x_max <- -60
-y_min <- 9.0
-y_max <- 9.5
+x_min <- min(results_df$Mean_Coherence) - 3
+
+x_max <- max(results_df$Mean_Coherence) + 3
+
+y_min <- min(results_df$Mean_Exclusivity) - 0.1
+
+y_max <- max(results_df$Mean_Exclusivity) + 0.1
+
 
 # creating a Scatterplot 
 ggplot2::ggplot(results_df, aes(x = Mean_Coherence, y = Mean_Exclusivity, color = Model)) +
@@ -740,6 +749,12 @@ The comparison of the models highlights the impact of our preprocessing steps on
 
 The tutorial has emphasized the importance of evaluating preprocessing steps while suggesting systematic comparison at all levels of the research process to identify optimal solution tailored to the use case. It examined effective approaches within the preprocessing steps, but also compared how different levels of preprocessing affect modeling outcomes. These strategies are essential for making informed decisions during the research process. However, applying specific preprocessing steps depends on the use case, the collected data and the methods applied. For our use case - an artificial data set based on #olympics2024 tweets - we conducted several preprocessing steps including: 1) adressing multilingual content, 2) performing minor text operations, 3) removing stopwords and 4) lemmatization. We compared DeepL and GoogleTranslate as well as different custom stopword lists like NLTK, SMART or Stopwords ISO and discussed multiple strategies for assessing the impact of the different strategies on our text data. However, we did not employ data augmentation strategies like POS tagging and named entity recognition. To evaluate the effects of preprocessing, we compared different stages of preprocessing by modeling four separate STMs. Each model was then manually evaluated for topic interpretability. It is important to note that the deviations from the incorporated topics could also be influenced by the small size of the data set, as modeling 10 topics for such limited data is relatively ambitious. We then calculated different internal metrics like semantic coherence and exclusivity to compare the four levels of preprocessing. This analysis allowed us to pinpoint the effects of every text preprocessing step on the STM models. Our finding revealed that semantic coherence decreased with more preprocessing because stopwords, punctuations and symbols co-occurring frequently were removed, while exclusivity increased. Among the preprocessing steps, the removal of stopwords had the most significant impact on these metrics. One way to achieve a model with higher coherence values might involve removing only #Olympics2024 from the tweets and leave the remaining hashtags in the data set. Since hashtags often also represent thematic contextualizations, this could might enhance topic interpretability.
 
-Of course, the results from this small-scale, artificial data set, are not generalizable, as they heavily depend on the relationship between respective data and concrete preprocessing steps employed. @churchill2021 found coherence scores across LDA models to be relatively similar in their comparison, with differences arising more clearly between model types rather than preprocessing steps (without including manual evaluation). Ultimately, it is crucial to evaluate preprocessing steps in a context-sensitive manner, considering their influence on results and their suitability for the data and methods used.
+At the same time, it is noticeable that small deviations can occur when topic models are recalculated. This can be attributed to two primary factors:
+
+1.  Automatic Translation Variability: Deviations can arise from the inherent variability and nuances of automatic translation, which may slightly alter the content during preprocessing.
+
+2.  Data Set Characteristics: The small size of the data set - comprising a limited number of documents and a relatively low word count per document—amplifies the impact of minor changes. Even small variations in the text can have a noticeable effect on the resulting topic models.
+
+These factors underscore the importance of considering data set size and preprocessing consistency when analyzing text data, especially in studies using topic modeling techniques. Of course, the results from this small-scale, artificial data set, are not generalizable, as they heavily depend on the relationship between respective data and concrete preprocessing steps employed. @churchill2021 found coherence scores across LDA models to be relatively similar in their comparison, with differences arising more clearly between model types rather than preprocessing steps (without including manual evaluation). Ultimately, it is crucial to evaluate preprocessing steps in a context-sensitive manner, considering their influence on results and their suitability for the data and methods used.
 
 # 5. Literature
