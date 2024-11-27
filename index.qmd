@@ -15,7 +15,7 @@ In this tutorial you will learn:
 1.  **Enhancing data quality through preprocessing:** The tutorial provides a practical guide on how preprocessing methods, such as automated translation, minor text operations and stopword removal, can significantly improve the quality of social media data depended on use case, data types and methods.
 2.  **Comparison of tools, packages and strategies:** By systematically evaluating and comparing different approaches (e.g. different stopword lists), it is highlighted how they can alter textual content and impact data interpretation and quality.
 3.  **Creation and analysis of preprocessing levels:** Defining four preprocessing levels offers a structured framework to analyze text data at varying degrees of preparation, helping to understand how preprocessing affects analytical outcomes.
-4.  **Applying certain metrics to assess data quality:** Text similarity measures such as cosine similarity are used to document differences between the packages. Also Structural Topic Modeling is used to compare different preprocessing stages using semantic coherence and exclusivity.
+4.  **Applying certain metrics to assess data quality:** Text similarity measures such as word count or cosine similarity are used to document differences between the various preprocessing strategies and packages. Also Structural Topic Modeling is used to compare different preprocessing stages using semantic coherence and exclusivity.
 
 # 1. Introduction
 
@@ -220,7 +220,7 @@ olympics_data_en_full
 ```
 
 ::: callout-important
-Recent literature also highlighted the importance of using open source models for extrinsic data quality values like reproducibility [@chan2020], especially since they perform only slightly less accurate compared to the commercial ones [@licht2024a]. In R, the authors have currently not found any convincing open source alternative integrated in packages. Open source models like OpusMT can be used in Python via [Hugging Face](https://huggingface.co/models?pipeline_tag=translation&sort=trending). In R, these models can be accessed via the [`reticulate`](https://rstudio.github.io/reticulate/) package, which offers a connection to Python applications (see [here](https://rpubs.com/eR_ic/transfoRmers)). In future, a another option might be the [`text`](https://rpubs.com/eR_ic/transfoRmers) package, in which the translation function still has an experimental status.
+The translations of DeepL and Google Translate may differ slightly with each new API request due to coincidence or updates to the model. Especially when using Bag of Word models, this can lead to deviations depending on the proportion of translated text. Recent literature also highlighted the importance of using open source models for extrinsic data quality values like reproducibility [@chan2020], especially since they perform only slightly less accurate compared to the commercial ones [@licht2024a]. In R, the authors have currently not found any convincing open source alternative integrated in packages. Open source models like OpusMT can be used in Python via [Hugging Face](https://huggingface.co/models?pipeline_tag=translation&sort=trending). In R, these models can be accessed via the [`reticulate`](https://rstudio.github.io/reticulate/) package, which offers a connection to Python applications (see [here](https://rpubs.com/eR_ic/transfoRmers)). In future, a another option might be the [`text`](https://rpubs.com/eR_ic/transfoRmers) package, in which the translation function still has an experimental status.
 :::
 
 ### 3.3 Minor text operations
@@ -751,7 +751,7 @@ The tutorial has emphasized the importance of evaluating preprocessing steps whi
 
 At the same time, it is noticeable that small deviations can occur when topic models are recalculated. This can be attributed to two primary factors:
 
-1.  Automatic Translation Variability: Deviations can arise from the inherent variability and nuances of automatic translation, which may slightly alter the content during preprocessing.
+1.  Translation Variance: Deviations can arise from the inherent variability and nuances of automatic translation, which may slightly alter the content during preprocessing.
 
 2.  Data Set Characteristics: The small size of the data set - comprising a limited number of documents and a relatively low word count per document—amplifies the impact of minor changes. Even small variations in the text can have a noticeable effect on the resulting topic models.
 
