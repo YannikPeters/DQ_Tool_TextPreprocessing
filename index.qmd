@@ -24,7 +24,7 @@ The digitalisation has led to innovations of research objects and research metho
 In this tutorial we aim to explore different levels of text preprocessing and compare as well as recommend various packages, tools and functions to use. @churchill2021 distinguish between four levels of text preprocessing.
 
 | Preprocessing level | Preprocessing operations |
-|------------------------------------|------------------------------------|
+|----|----|
 | Elementary pattern-based preprocessing | e.g. removal of punctuaction, special characters, symbols, numbers etc. |
 | Dictionary-based preprocessing | e.g. removal of stopwords |
 | Natural language preprocessing | e.g. stemming, lemmatization |
@@ -536,7 +536,7 @@ head(olympics_en_dfm_level3)
 We have now created a DFM for our preprocessed data set. However, it would be valuable to evaluate how the analyses differ when using different levels of preprocessing. In our pipeline so far, we have used approaches of three categories of text preprocessing as defined by @churchill2021: elementary pattern-based preprocessing (e.g. removal of punctuation), dictionary-based preprocessing (e.g. stopword removal), natural language preprocessing (e.g. lemmatization). We will therefore consider it as level 3 preprocessed data. Let's define three additional preprocessing levels.
 
 | Levels | Preprocessing steps |
-|------------------------------------|------------------------------------|
+|----|----|
 | level 0 | tokenization, automated translation |
 | level 1 | tokenization, automated translation and elementary pattern-based preprocessing (removal of punctuation, symbols, hashtags, numbers etc) |
 | level 2 | tokenization, automated translation, elementary pattern-based preprocessing and dictionary-based preprocessing (stopword removal) |
