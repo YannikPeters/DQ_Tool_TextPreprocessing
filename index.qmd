@@ -24,7 +24,7 @@ The digitalisation has led to innovations of research objects and research metho
 In this tutorial we aim to explore different levels of text preprocessing and compare as well as recommend various packages, tools and functions to use. @churchill2021 distinguish between four levels of text preprocessing.
 
 | Preprocessing level | Preprocessing operations |
-|----|----|
+|------------------------------------|------------------------------------|
 | Elementary pattern-based preprocessing | e.g. removal of punctuaction, special characters, symbols, numbers etc. |
 | Dictionary-based preprocessing | e.g. removal of stopwords |
 | Natural language preprocessing | e.g. stemming, lemmatization |
@@ -151,14 +151,14 @@ my_key \<- "Your key"
 
 Let's compare the results for the German tweets.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 head(olympics_data_de_google$tweet_text)
 head(olympics_data_de_deepl$tweet_text)
 ```
 
 A quick comparison shows that the translations seem pretty similar. We can also use certain metrics to determine the degree of similarity. For this example, we will apply [cosine similarity](https://towardsdatascience.com/overview-of-text-similarity-metrics-3397c4601f50). First, we need to `unlist` our text data, as the `COS_TEXT` function from the `textTinyR` package requires a vector as an input.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 google_translation_de <- unlist(translation_google_de)
 deepl_translation_de <- unlist(translation_deepl_de)
 
@@ -202,7 +202,7 @@ With an average cosine similarity of 0.85, the French translation is slightly le
 
 If we combine the translated data sets with the original English language data set and then compare the cosine similarity, it is of course higher with 0,98. So in this case, the difference of our combined data set is minimal. This would, of course, be different if the amount of non-English content were higher.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 olympics_data_en_deepl_full <- rbind(olympics_data_en, olympics_data_de_deepl, olympics_data_fr_deepl)
 olympics_data_en_google_full <- rbind(olympics_data_en, olympics_data_de_google, olympics_data_fr_google)
 
@@ -212,7 +212,7 @@ mean(cosine_similarities_full)
 
 The key question for us is now: Should we use the translation of DeepL or Google Translate? Generally, DeepL is considered to be more accurate than Google Translate (e.g. [here](https://www.geeksforgeeks.org/deepl-vs-google/)). Still, Google Translate has proven to be highly accurate for calculating topic models [@devries2018]. In current research, both tools are considered suitable. For the translation of Spanish idiomatic expressions into English, @hidalgo-ternero2021 found DeepL to perform slightly better, with an average accuracy rate of 89%, than Google Translate at 86%. @sebo2024 did not find significant differences in the accuracy of the two tools. One of the major advantages of Google Translate is that it can be applied to significantly more languages than DeepL. As we had to translate only two languages in our example data, we will use DeepL for this example.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 url_2 <- "https://raw.githubusercontent.com/YannikPeters/DQ_Tool_TextPreprocessing/main/data/olympics_data_en_deepl_full.csv"
 olympics_data_en_full <- readr::read_csv(url_2, locale = locale(encoding = "Latin1"))
 olympics_data_en_full
@@ -237,7 +237,7 @@ Different methods in Computational Social Science require varying strategies of 
 
 In our case, we will later apply STM, which is based on a bag of word approach. Therefore, we will apply some operations like removing hashtags, punctuaction or URLs. Before we do so, let's check the length of our documents.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 sum(stringr::str_count(olympics_data_en_full$tweet_text, '\\w+'))
 ```
 
@@ -536,7 +536,7 @@ head(olympics_en_dfm_level3)
 We have now created a DFM for our preprocessed data set. However, it would be valuable to evaluate how the analyses differ when using different levels of preprocessing. In our pipeline so far, we have used approaches of three categories of text preprocessing as defined by @churchill2021: elementary pattern-based preprocessing (e.g. removal of punctuation), dictionary-based preprocessing (e.g. stopword removal), natural language preprocessing (e.g. lemmatization). We will therefore consider it as level 3 preprocessed data. Let's define three additional preprocessing levels.
 
 | Levels | Preprocessing steps |
-|----|----|
+|------------------------------------|------------------------------------|
 | level 0 | tokenization, automated translation |
 | level 1 | tokenization, automated translation and elementary pattern-based preprocessing (removal of punctuation, symbols, hashtags, numbers etc) |
 | level 2 | tokenization, automated translation, elementary pattern-based preprocessing and dictionary-based preprocessing (stopword removal) |
@@ -636,7 +636,7 @@ A more detailed discussion on how to perform topic modeling in the social scienc
 
 Usually, an important step in applying STM is to find the optimal number of topics (k) using certain metrics and manual evaluation. As we are calculating different models based on different text data, we may not end up with the same number of topics per model. As our analysis, however, is based on an artificial data set, we were able to address this issue in advance. We have already integrated the following 10 topics into the data set.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 prop.table(table(olympics_data$subtopic)) * 100
 ```
 
@@ -651,13 +651,17 @@ dfm_stm1 <- quanteda::convert(olympics_en_dfm_level1, to ="stm")
 dfm_stm2 <- quanteda::convert(olympics_en_dfm_level2, to ="stm") 
 dfm_stm3 <- quanteda::convert(olympics_en_dfm_level3, to ="stm") 
 
-STM_0 <- stm::stm(dfm_stm0$documents, dfm_stm0$vocab, K = N, data = dfm_stm0$meta, max.em.its = 75, init.type = "Spectral")
+set.seed(1000)
+STM_0 <- stm::stm(dfm_stm0$documents, dfm_stm0$vocab, K = N, data = dfm_stm0$meta, max.em.its = 75, init.type = "LDA")
 
-STM_1 <- stm::stm(dfm_stm1$documents, dfm_stm1$vocab, K = N, data = dfm_stm1$meta, max.em.its = 75, init.type = "Spectral")
+set.seed(1000)
+STM_1 <- stm::stm(dfm_stm1$documents, dfm_stm1$vocab, K = N, data = dfm_stm1$meta, max.em.its = 75, init.type = "LDA")
 
-STM_2 <- stm::stm(dfm_stm2$documents, dfm_stm2$vocab, K = N, data = dfm_stm2$meta, max.em.its = 75, init.type = "Spectral")
+set.seed(1000)
+STM_2 <- stm::stm(dfm_stm2$documents, dfm_stm2$vocab, K = N, data = dfm_stm2$meta, max.em.its = 75, init.type = "LDA")
 
-STM_3 <- stm::stm(dfm_stm3$documents, dfm_stm3$vocab, K = N, data = dfm_stm3$meta, max.em.its = 75, init.type = "Spectral")
+set.seed(1000)
+STM_3 <- stm::stm(dfm_stm3$documents, dfm_stm3$vocab, K = N, data = dfm_stm3$meta, max.em.its = 75, init.type = "LDA")
 
 ```
 
@@ -675,7 +679,7 @@ STM_2_labels
 STM_3_labels
 ```
 
-As we can see, our topics become more meaningful the more preprocessing steps are applied. Especially the models at level 0 and level 1 are not clear as they mostly consists of stopwords like "the", "of", "is", "to" or "at". Regarding level 2 and 3 we do find overlapping topics of course, but also some differences. A comparison of the topics implemented in advance with the ones in model 3 reveals a number of similarities. On the one hand, we find topics on doping and athletic performance. On the other hand, the various sports competitions are not as distinct. The ceremonies can be found in multiple topics, although there is no genuine one. In order to represent topic interpretability numerically, often coders summarize the top terms and assign topic labels. Statistical agreement coefficients such as Krippendorff's alpha [@krippendorff2004] would then be calculated. For the purpose of this tutorial, we won't calculate topic interpretability with human coders, but only compare key internal metrics like [semantic coherence and exclusivity](https://mallet.cs.umass.edu/diagnostics.php). Semantic coherence refers to the degree of which top terms from the same topic occur in the same document. Exclusivity, on the other hand, refers to the degree of how unique the top terms in each topic are compared to other topics. Usually, the relationship between topic coherence and exclusivity is asymmetrical.
+As we can see, our topics become more meaningful the more preprocessing steps are applied. Especially the models at level 0 and level 1 are not clear as they mostly consists of stopwords like "the", "of", "is", "to" or "at". Regarding level 2 and 3 we do find overlapping topics of course, but also some differences. A comparison of the topics implemented in advance with the ones in model 3 reveals a number of similarities. For instance, we find topics on doping, gold medalists, ceremonies, basektball and athletic performance. On the other hand, the various sports competitions are not as distinct. The ceremonies can be found in multiple topics, although there is no genuine one. In order to represent topic interpretability numerically, often coders summarize the top terms and assign topic labels. Statistical agreement coefficients such as Krippendorff's alpha [@krippendorff2004] would then be calculated. For the purpose of this tutorial, we won't calculate topic interpretability with human coders, but only compare key internal metrics like [semantic coherence and exclusivity](https://mallet.cs.umass.edu/diagnostics.php). Semantic coherence refers to the degree of which top terms from the same topic occur in the same document. Exclusivity, on the other hand, refers to the degree of how unique the top terms in each topic are compared to other topics. Usually, the relationship between topic coherence and exclusivity is asymmetrical.
 
 ```{r message=FALSE, warning=FALSE}
 #calculating model statistics
@@ -743,7 +747,7 @@ ggplot2::ggplot(results_df, aes(x = Mean_Coherence, y = Mean_Exclusivity, color 
 
 ```
 
-The comparison of the models highlights the impact of our preprocessing steps on these two metrics. For semantic coherence, it is evident that the more preprocessing steps are applied, the less coherent the models become. This is primarily because for model 0 and 1, topics include tokens occuring very frequently in the data set and appear across multiple topics (e.g. stopwords). In contrast, the exclusivity score increases with greater preprocessing as topics are less dominated by highly frequent tokens. We already find some smaller differences between model 1 and 2, highlighting the impact of minor text operations. The greatest distance occurs between model 2 and model 3, underscoring the substantial effect of stopword removal on these metrics. Even though it is shown for our data set that preprocessing results in lower coherence values, this does not argue against the procedure itself. Rather, it indicates 1) that in text preprocessing a certain level of exclusivity must be reached to model meaningful topics, 2) that topic coherence in the use case of preprocessing does not correspond to topic interpretality and 3) how important the manual interpretation and validation of the topics are. Still, this approach offers a structured strategy for evaluating the effects of preprocessing on topic modeling. Still, especially for smaller data sets, these metrics are sensitive and can vary even with smaller changes in the data, which have to be considered.
+The comparison of the models highlights the impact of our preprocessing steps on these two metrics. For semantic coherence, it is evident that the more preprocessing steps are applied, the less coherent the models become. This is primarily because for model 0 and 1, topics include tokens occuring very frequently in the data set and appear across multiple topics (e.g. stopwords). In contrast, the exclusivity score increases with greater preprocessing as topics are less dominated by highly frequent tokens. We already find some smaller differences between model 0 and 1, highlighting the impact of minor text operations. A great distance occurs between model 1 and model 2, underscoring the substantial effect of stopword removal on these metrics. Even though it is shown for our data set that preprocessing results in lower coherence values, this does not argue against the procedure itself. Rather, it indicates 1) that in text preprocessing a certain level of exclusivity must be reached to model meaningful topics, 2) that topic coherence in the use case of preprocessing does not correspond to topic interpretality and 3) how important the manual interpretation and validation of the topics are. Still, this approach offers a structured strategy for evaluating the effects of preprocessing on topic modeling. Still, especially for smaller data sets, these metrics are sensitive and can vary even with smaller changes in the data, which have to be considered.
 
 # 4. Discussion
 
