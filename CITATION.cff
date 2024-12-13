@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this tool, please cite it as below."
+title: "TextPrep - Comparing Tools and Workflows for Data Quality in Basic Text Preprocessing with R"
+authors:
+  - family-names: "Peters"
+    given-names: "Yannik"
+    affiliation: "GESIS - Leibniz Institute for the Social Sciences"
+    orcid: "https://orcid.org/0009-0001-4879-5477"
+  - familey-names: "Shah"
+    given-names: "Kunjan"
+    affiliation: "GESIS - Leibniz Institute for the Social Sciences"
+date-released: "2024-12-13"
+version: "1.0.2"
+url: "https://kodaqs-toolbox.gesis.org/github.com/YannikPeters/DQ_Tool_TextPreprocessing/index/"
+repository-code: "https://github.com/YannikPeters/DQ_Tool_TextPreprocessing"
+keywords:
+  - "Text Preprocessing"
+  - "Measurement Error"
+  - "Social Media"
+  - "Topic Modeling"
+license: "MIT"
