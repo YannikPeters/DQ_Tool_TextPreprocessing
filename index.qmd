@@ -1,7 +1,9 @@
 ---
 title: "TextPrep"
 subtitle: "Comparing Tools and Workflows for Data Quality in Basic Text Preprocessing with R"
-author: "Yannik Peters, Kunjan Shah"
+author:
+  - name: "Yannik Peters"
+  - name: "Kunjan Shah"
 format: html
 link-external-newwindow: true
 image: "image/icon_textprep.png"
@@ -249,7 +251,7 @@ olympics_data_en_full_rem <- olympics_data_en_full %>%
  dplyr::mutate(
         	# Extract hashtags
               	Hashtags = sapply(str_extract_all(`tweet_text`, "#\\w+"), paste, collapse = " "),
-        	
+
               	# Remove hashtags from the original text
             `tweet_text` = textclean::replace_hash(`tweet_text`, replacement = "")
       	) %>%
@@ -266,9 +268,9 @@ Removing the hashtags has reduced our total word count by more than 400 words. I
 olympics_data_en_full_rem <- olympics_data_en_full_rem %>%
   dplyr::mutate(
     #Store the usernames in a new column
-    user_mentions = stringr::str_extract_all(tweet_text, "@\\w+") %>% 
+    user_mentions = stringr::str_extract_all(tweet_text, "@\\w+") %>%
       sapply(paste, collapse = ", "),  # Extract usernames with '@'
-    
+
     # Clean the text
     tweet_text = gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", tweet_text) %>% #Remove retweets
       gsub("https?://\\S+", "", .) %>%  # Remove URLs
@@ -342,14 +344,14 @@ As expected, for our artificial data set, the Stopwords ISO list would remove th
 remove_stopwords <- function(data, text_column, stopword_source) {
   # Get stopwords from the stopwords package
   stops <- stopwords::stopwords(language = "en", source = stopword_source)
-  
+
   # Remove stopwords from the specified text column
   data[[text_column]] <- sapply(data[[text_column]], function(text) {
     words <- strsplit(text, "\\s+")[[1]]       # Split text into words
     filtered_words <- setdiff(words, stops)     # Remove stopwords
     paste(filtered_words, collapse = ", ")       # Reassemble text without stopwords
   })
-  
+
   return(data)
 }
 
@@ -465,16 +467,16 @@ length(stopwords_smart_adapted)
 Let's now apply our case-specific stopword list to the text.
 
 ```{r message=FALSE, warning=FALSE}
-  
+
 olympics_data_en_full_smart_adapted <- olympics_data_en_full_rem
 
 remove_stopwords_2 <- function(data, text_column, new_column_removed = "stopwords_smart_adapted") {
   # Stopwort-Liste (diese muss zuvor erstellt werden)
   stops <- stopwords_smart_adapted
-  
+
   # new column for removed stopwords
   data[[new_column_removed]] <- NA
-  
+
   # remove stopwords and save results
   results <- lapply(data[[text_column]], function(text) {
     words <- strsplit(text, "\\s+")[[1]]       # split text in words
@@ -485,11 +487,11 @@ remove_stopwords_2 <- function(data, text_column, new_column_removed = "stopword
       filtered_words = paste(filtered_words, collapse = " ") # removed stopwords as list
     )
   })
-  
+
   # save results in column
   data[[text_column]] <- sapply(results, function(res) res$cleaned_text)
   data[[new_column_removed]] <- sapply(results, function(res) res$filtered_words)
-  
+
   return(data)
 }
 
@@ -524,7 +526,7 @@ olympics_en_dfm_level3 <- quanteda::corpus(olympics_data_en_full_smart_adapted$t
   # tokenize and remove numbers and symbols
   quanteda::tokens(.,remove_numbers=TRUE, remove_symbols = TRUE) %>%
   # lemmatize
-  quanteda::tokens_replace(lemma_en$inflected_form, lemma_en$lemma, 
+  quanteda::tokens_replace(lemma_en$inflected_form, lemma_en$lemma,
                  valuetype = "fixed") %>%
   # convert to document-feature-matrix
   quanteda::dfm() %>%
@@ -601,14 +603,14 @@ dfm_summary <- data.frame(
 # loop to calculate metrics
 for (level in names(dfms)) {
   dfm <- dfms[[level]]
-  
+
   # calculating dimensions of the DFM
   num_documents <- dim(dfm)[1]
   unique_tokens <- dim(dfm)[2]
-  
+
   # calculating total number of tokens
   total_tokens <- sum(colSums(dfm))
-  
+
   # add data to dataframe
   dfm_summary <- rbind(
     dfm_summary,
@@ -647,10 +649,10 @@ We can, therefore, directly compare the topics modeled in LDA with the topics we
 
 N=10
 
-dfm_stm0 <- quanteda::convert(olympics_en_dfm_level0, to ="stm") 
-dfm_stm1 <- quanteda::convert(olympics_en_dfm_level1, to ="stm") 
-dfm_stm2 <- quanteda::convert(olympics_en_dfm_level2, to ="stm") 
-dfm_stm3 <- quanteda::convert(olympics_en_dfm_level3, to ="stm") 
+dfm_stm0 <- quanteda::convert(olympics_en_dfm_level0, to ="stm")
+dfm_stm1 <- quanteda::convert(olympics_en_dfm_level1, to ="stm")
+dfm_stm2 <- quanteda::convert(olympics_en_dfm_level2, to ="stm")
+dfm_stm3 <- quanteda::convert(olympics_en_dfm_level3, to ="stm")
 
 set.seed(1000)
 STM_0 <- stm::stm(dfm_stm0$documents, dfm_stm0$vocab, K = N, data = dfm_stm0$meta, max.em.its = 75, init.type = "LDA")
@@ -692,11 +694,11 @@ compute_metrics <- function(stm_model, documents, model_name, num_topics = 10) {
   #Semantic Coherence
   semantic_coherence <- stm::semanticCoherence(stm_model, documents)
   mean_coherence <- sum(semantic_coherence) / num_topics
-  
+
   #Exclusivity
   exclusivity <- stm::exclusivity(stm_model)
   mean_exclusivity <- sum(exclusivity) / num_topics
-  
+
   #return values as a list
   return(data.frame(
     Model = model_name,
@@ -729,24 +731,24 @@ y_min <- min(results_df$Mean_Exclusivity) - 0.1
 y_max <- max(results_df$Mean_Exclusivity) + 0.1
 
 
-# creating a Scatterplot 
+# creating a Scatterplot
 ggplot2::ggplot(results_df, aes(x = Mean_Coherence, y = Mean_Exclusivity, color = Model)) +
-  geom_point(size = 5, alpha = 0.8) +       
-  geom_text(aes(label = Model), vjust = -1.2, hjust = 0.5, color = "black") + 
-  scale_color_viridis_d(option = "plasma", end = 0.9) + 
+  geom_point(size = 5, alpha = 0.8) +
+  geom_text(aes(label = Model), vjust = -1.2, hjust = 0.5, color = "black") +
+  scale_color_viridis_d(option = "plasma", end = 0.9) +
   labs(
     title = "Comparing STM-models",
     x = "Topic Coherence",
     y = "Topic Exclusivity",
-    color = "Model" 
+    color = "Model"
   ) +
-  xlim(x_min, x_max) +                             
-  ylim(y_min, y_max) +                              
-  theme_minimal(base_size = 14) +                   
+  xlim(x_min, x_max) +
+  ylim(y_min, y_max) +
+  theme_minimal(base_size = 14) +
   theme(
-    legend.position = "right",                     
-    legend.title = element_text(size = 12),         
-    legend.text = element_text(size = 10)         
+    legend.position = "right",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
   )
 
 
