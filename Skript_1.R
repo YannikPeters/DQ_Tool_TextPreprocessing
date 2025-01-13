@@ -10,27 +10,55 @@ install.packages("deeplr")
 install.packages("stringdist")
 install.packages("textTinyR")
 install.packages("text")
-install.packages("stopwords")
-install.packages("RCurl")
-library(RCurl)
- 
-save()
-
-x <- getURL(https://raw.github.com/YannikPeters/DQ_Tool_TextPreprocessing/blob/main/Olympics_Summer_2024.csv) 
-read_csv(x, locale = locale(encoding = "Latin1"))
-
-write.csv(olympics_data_en_deepl_full, "olympics_data_en_deepl_full.csv", row.names = FALSE)
-write.csv(olympics_data_fr_deepl, "olympics_data_fr_deepl.csv", row.names = FALSE)
-
-tokens <- str_split((olympics_data_en_full$tweet_text), "\\W+") 
-all_tokens <- unlist(tokens)
-
-# Einzigartige Tokens extrahieren
-unique_tokens <- unique(all_tokens)
-
-# Ausgabe der einzigartigen Tokens und der Anzahl
-print(unique_tokens)
-print(length(unique_tokens))  
 
 
+rm(auth_key)
 
+textrpp_install()
+
+# Initialize the installed conda environment.
+# save_profile = TRUE saves the settings so that you don't have to run textrpp_initialize() after restarting R. 
+textrpp_initialize(save_profile = TRUE)
+
+translations_de_en <- text::textTranslate(
+  text = olympics_data_de$tweet_text,
+  model = "Helsinki-NLP/opus-mt-de-en"
+)
+
+library(text)
+library(reticulate)
+
+# Install text required python packages in a conda environment (with defaults).
+text::textrpp_install()
+
+# Show available conda environments.
+reticulate::conda_list()
+
+# Initialize the installed conda environment.
+# save_profile = TRUE saves the settings so that you don't have to run textrpp_initialize() after restarting R. 
+text::textrpp_initialize(save_profile = TRUE)
+
+# Test so that the text package work.
+textEmbed("hello")
+
+
+# Beispiel-Daten
+example <- data.frame(text = c(
+  "RT @user: Check this out! https://example.com",
+  "Just a tweet with @mention and some amp text.",
+  "This is a clean tweet without links.",
+  "RT via @anotherUser: Visit http://example.org for more info!",
+  "Text with ampersand & some punctuation!!!"
+))
+
+# Bereinigung des Textes in einem Befehl 
+example$text <- example$text %>%
+gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", .) %>%
+  gsub("https?://\\S+", "", .) %>%
+  gsub("@\\w+", "", .) %>%
+  gsub("[\r\n]", " ", .) %>%
+  gsub("[[:punct:]]+", " ", .) %>%
+  gsub("\\s+", " ", .) %>%
+  trimws(.)
+
+example
