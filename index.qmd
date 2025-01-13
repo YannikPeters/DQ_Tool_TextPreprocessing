@@ -135,10 +135,6 @@ olympics_data_de_google$tweet_text <- translation_google_de
 
 To access the DeepL API, you need a developer account. You can use this [link](https://www.deepl.com/en/pro/change-plan#developer) to reach the registration page. A free account allows you to translate up to 500,000 characters per month and provides access to the DeepL Rest API. To translate text data using DeepL in R, you first need the API-key. When signing up for a developer account, you will automatically receive this key.
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
-my_key <- "37cbfea5-12e9-4062-bdd4-04bdca6aef75:fx"
-```
-
 ```{r warning=FALSE, message=FALSE, results='hide'}
 #Translation of German posts and creation of translated dataframe using DeepL
 translation_deepl_de <- deeplr::translate2(olympics_data_de$tweet_text, target_lang = "EN", auth_key = my_key)
