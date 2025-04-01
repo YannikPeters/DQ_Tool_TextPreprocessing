@@ -27,7 +27,7 @@ The digitalisation has led to innovations of research objects and research metho
 In this tutorial we aim to explore different levels of text preprocessing and compare as well as recommend various packages, tools and functions to use. @churchill2021 distinguish between four levels of text preprocessing.
 
 | Preprocessing level | Preprocessing operations |
-|----|----|
+|------------------------------------|------------------------------------|
 | Elementary pattern-based preprocessing | e.g. removal of punctuaction, special characters, symbols, numbers etc. |
 | Dictionary-based preprocessing | e.g. removal of stopwords |
 | Natural language preprocessing | e.g. stemming, lemmatization |
@@ -56,7 +56,7 @@ Finally, we will then load our artificial dataset from the Olympic summer games.
 
 ```{r message = FALSE, warning = FALSE}
 url <- "https://raw.githubusercontent.com/YannikPeters/DQ_Tool_TextPreprocessing/main/data/Olympics_Summer_1_2024.csv"
-olympics_data <- readr::read_csv(url, locale = locale(encoding = "Latin1"))
+olympics_data <- readr::read_csv(url, locale = locale(encoding = "UTF-8"))
 olympics_data
 ```
 
@@ -135,18 +135,26 @@ olympics_data_de_google$tweet_text <- translation_google_de
 
 To access the DeepL API, you need a developer account. You can use this [link](https://www.deepl.com/en/pro/change-plan#developer) to reach the registration page. A free account allows you to translate up to 500,000 characters per month and provides access to the DeepL Rest API. To translate text data using DeepL in R, you first need the API-key. When signing up for a developer account, you will automatically receive this key.
 
-```{r warning=FALSE, message=FALSE, results='hide'}
+```{r warning=FALSE, message=FALSE, eval=FALSE}
 #Translation of German posts and creation of translated dataframe using DeepL
 translation_deepl_de <- deeplr::translate2(olympics_data_de$tweet_text, target_lang = "EN", auth_key = my_key)
 olympics_data_de_deepl <- olympics_data_de
 olympics_data_de_deepl$tweet_text <- translation_deepl_de
 ```
 
-::: callout-note
+::: callout-important
 For this code to work, make sure that you create a my_key object containing your API key.
 
 my_key \<- "Your key"
+
+We do not apply this previous code chunk here, in order to not publish the API keys. We will rather use the translated tweets saved in csv-file in GitHub. They have been translated with the excact same code as above using the DeepL API.
 :::
+
+```{r warning=FALSE, message=FALSE}
+url <- "https://raw.githubusercontent.com/YannikPeters/DQ_Tool_TextPreprocessing/main/data/olympics_data_de_deepl.csv"
+olympics_data_de_deepl <- readr::read_csv(url, locale = locale(encoding = "UTF-8"))
+
+```
 
 Let's compare the results for the German tweets.
 
@@ -159,7 +167,7 @@ A quick comparison shows that the translations seem pretty similar. We can also 
 
 ```{r message=FALSE, warning=FALSE}
 google_translation_de <- unlist(translation_google_de)
-deepl_translation_de <- unlist(translation_deepl_de)
+deepl_translation_de <- as.character(olympics_data_de_deepl$tweet_text)
 
 
 cosine_similarities_de <- textTinyR::COS_TEXT(google_translation_de, deepl_translation_de, separator = " ")
@@ -168,7 +176,7 @@ cosine_similarities_de
 mean(cosine_similarities_de)
 ```
 
-With a mean cosine similarity of 0.90 on a scale from 0 to 1, the translations from Google Translate and DeepL are indeed very similar. We can apply the same process for the French postings.
+With a mean cosine similarity of 0.77 on a scale from 0 to 1, the translations from Google Translate and DeepL are indeed quite similar, but still there are some differences. We can apply the same process for the French postings.
 
 ```{r message=FALSE, warning=FALSE}
 #Translation of French posts and creation of translated dataframe using Google Translate
@@ -176,19 +184,29 @@ translation_google_fr <- polyglotr::google_translate(olympics_data_fr$tweet_text
 translation_google_fr <- sapply(translation_google_fr, function(x) x[[1]])
 olympics_data_fr_google <- olympics_data_fr
 olympics_data_fr_google$tweet_text <- translation_google_fr
+```
 
+```{r eval=FALSE}
 #Translation of French posts and creation of translated dataframe using DeepL
+#again this Code chunk won't be applied here in order to not publish API keys (see call-out box above)
 translation_deepl_fr <- deeplr::translate2(olympics_data_fr$tweet_text, target_lang = "EN", auth_key = my_key)
 olympics_data_fr_deepl <- olympics_data_fr
 olympics_data_fr_deepl$tweet_text <- translation_deepl_fr
+```
 
+```{r message=FALSE, warning=FALSE}
+url_1 <- "https://raw.githubusercontent.com/YannikPeters/DQ_Tool_TextPreprocessing/main/data/olympics_data_fr_deepl.csv"
+olympics_data_fr_deepl <- readr::read_csv(url_1, locale = locale(encoding = "UTF-8"))
+```
+
+```{r message=FALSE, warning=FALSE}
 #compare Google Translate und Deepl translation manually
 olympics_data_fr_google$tweet_text
 olympics_data_fr_deepl$tweet_text
 
 #unlist french translation data
-google_translation_fr <- unlist(translation_google_fr)
-deepl_translation_fr <- unlist(translation_deepl_fr)
+google_translation_fr <- as.character(olympics_data_fr_google$tweet_text)
+deepl_translation_fr <- as.character(olympics_data_fr_deepl$tweet_text)
 
 #calculate cosine similarities for French translation data
 cosine_similarities_fr <- textTinyR::COS_TEXT(google_translation_fr, deepl_translation_fr, separator = " ")
@@ -197,9 +215,9 @@ cosine_similarities_fr
 mean(cosine_similarities_fr)
 ```
 
-With an average cosine similarity of 0.85, the French translation is slightly less similar than the German one.
+With an average cosine similarity of 0,74, the French translation is slightly less similar than the German one.
 
-If we combine the translated data sets with the original English language data set and then compare the cosine similarity, it is of course higher with 0,98. So in this case, the difference of our combined data set is minimal. This would, of course, be different if the amount of non-English content were higher.
+If we combine the translated data sets with the original English language data set and then compare the cosine similarity, it is of course higher with 0,96. So in this case, the difference of our combined data set is minimal. This would, of course, be different if the amount of non-English content were higher.
 
 ```{r message=FALSE, warning=FALSE}
 olympics_data_en_deepl_full <- rbind(olympics_data_en, olympics_data_de_deepl, olympics_data_fr_deepl)
@@ -535,7 +553,7 @@ head(olympics_en_dfm_level3)
 We have now created a DFM for our preprocessed data set. However, it would be valuable to evaluate how the analyses differ when using different levels of preprocessing. In our pipeline so far, we have used approaches of three categories of text preprocessing as defined by @churchill2021: elementary pattern-based preprocessing (e.g. removal of punctuation), dictionary-based preprocessing (e.g. stopword removal), natural language preprocessing (e.g. lemmatization). We will therefore consider it as level 3 preprocessed data. Let's define three additional preprocessing levels.
 
 | Levels | Preprocessing steps |
-|----|----|
+|------------------------------------|------------------------------------|
 | level 0 | tokenization, automated translation |
 | level 1 | tokenization, automated translation and elementary pattern-based preprocessing (removal of punctuation, symbols, hashtags, numbers etc) |
 | level 2 | tokenization, automated translation, elementary pattern-based preprocessing and dictionary-based preprocessing (stopword removal) |
